@@ -465,23 +465,23 @@ function fmtDateShort(iso) {
    CHECKLIST DEFINICIÓN
 ============================================================ */
 const PRE_CHECKLIST = [
-  { key:"sena",    label:"Seña confirmada",       icon:"💰", type:"check" },
-  { key:"flyer",   label:"Flyer recibido",        icon:"🎨", type:"check" },
-  { key:"avion",   label:"Vuelo",                 icon:"✈️", type:"info", placeholder:"Aerolínea, vuelo, horario, código" },
-  { key:"hotel",   label:"Hotel",                 icon:"🏨", type:"info", placeholder:"Nombre, dirección, check-in/out, reserva" },
-  { key:"rider",   label:"Rider técnico",         icon:"🎛️", type:"info", placeholder:"Setup confirmado / link al rider" },
-  { key:"bebidas", label:"Rider de bebidas",      icon:"🥃", type:"check" },
-  { key:"setTime", label:"Horario de set",        icon:"🕐", type:"info", placeholder:"Hora de inicio y duración" },
-  { key:"driver",  label:"Contacto driver",       icon:"🚗", type:"info", placeholder:"Nombre + teléfono (opcional)", optional:true },
-  { key:"tickets", label:"Link de tickets",       icon:"🎟️", type:"info", placeholder:"URL (opcional)", optional:true },
-  { key:"guest",   label:"Lista de invitados",    icon:"👥", type:"info", placeholder:"Nombres / cantidad (opcional)", optional:true }
+  { key:"sena",    label:"Seña confirmada",       icon:"", type:"check" },
+  { key:"flyer",   label:"Flyer recibido",        icon:"", type:"check" },
+  { key:"avion",   label:"Vuelo",                 icon:"", type:"info", placeholder:"Aerolínea, vuelo, horario, código" },
+  { key:"hotel",   label:"Hotel",                 icon:"", type:"info", placeholder:"Nombre, dirección, check-in/out, reserva" },
+  { key:"rider",   label:"Rider técnico",         icon:"", type:"info", placeholder:"Setup confirmado / link al rider" },
+  { key:"bebidas", label:"Rider de bebidas",      icon:"", type:"check" },
+  { key:"setTime", label:"Horario de set",        icon:"", type:"info", placeholder:"Hora de inicio y duración" },
+  { key:"driver",  label:"Contacto driver",       icon:"", type:"info", placeholder:"Nombre + teléfono (opcional)", optional:true },
+  { key:"tickets", label:"Link de tickets",       icon:"", type:"info", placeholder:"URL (opcional)", optional:true },
+  { key:"guest",   label:"Lista de invitados",    icon:"", type:"info", placeholder:"Nombres / cantidad (opcional)", optional:true }
 ];
 
 const POST_CHECKLIST = [
-  { key:"feedback", label:"Contactar al promotor por feedback del evento", icon:"💬", type:"check" },
-  { key:"saldo",    label:"Saldo pendiente liquidado",                      icon:"💵", type:"check" },
-  { key:"gastos",   label:"Gastos del artista cargados",                    icon:"🧾", type:"info", placeholder:"Monto en ARS" },
-  { key:"material", label:"Material fotográfico / videos recibidos",        icon:"📸", type:"check" }
+  { key:"feedback", label:"Contactar al promotor por feedback del evento", icon:"", type:"check" },
+  { key:"saldo",    label:"Saldo pendiente liquidado",                      icon:"", type:"check" },
+  { key:"gastos",   label:"Gastos del artista cargados",                    icon:"", type:"info", placeholder:"Monto en ARS" },
+  { key:"material", label:"Material fotográfico / videos recibidos",        icon:"", type:"check" }
 ];
 
 /* ============================================================
@@ -557,23 +557,23 @@ function renderDashboard() {
     <!-- Hero -->
     <div class="gradient-bg text-white rounded-2xl p-6 sm:p-8 shadow-lg">
       <p class="text-indigo-200 text-sm">${new Date().toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
-      <h2 class="text-2xl sm:text-3xl font-bold mt-1">Hola Juanfra 👋</h2>
+      <h2 class="text-2xl sm:text-3xl font-bold mt-1">Hola Juanfra </h2>
       <p class="text-indigo-100 mt-2">Tenés <span class="font-bold text-white">${urgent.length}</span> fecha${urgent.length!==1?'s':''} urgente${urgent.length!==1?'s':''} y <span class="font-bold text-white">${upcoming.length}</span> próximas en agenda.</p>
     </div>
 
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-      ${statCard("Confirmadas", totalConfirmados, "indigo", "✅")}
-      ${statCard("Finalizadas", totalFinalizados, "emerald", "🎉")}
-      ${statCard("Por confirmar", totalPorConfirmar, "amber", "⏳")}
-      ${statCard("Pipeline", pipelineActivo, "purple", "🎯")}
+      ${statCard("Confirmadas", totalConfirmados, "indigo", "")}
+      ${statCard("Finalizadas", totalFinalizados, "emerald", "")}
+      ${statCard("Por confirmar", totalPorConfirmar, "amber", "")}
+      ${statCard("Pipeline", pipelineActivo, "purple", "")}
     </div>
 
     <!-- Urgentes -->
     ${urgent.length > 0 ? `
     <div class="bg-white rounded-2xl shadow-sm border border-rose-200 overflow-hidden">
       <div class="bg-gradient-to-r from-rose-500 to-orange-500 text-white px-5 py-3 flex items-center gap-2">
-        <span class="text-xl">🚨</span>
+        <span class="text-xl"></span>
         <h3 class="font-bold">Atención: fechas a menos de 7 días con checklist incompleto</h3>
       </div>
       <div class="divide-y divide-slate-100">
@@ -581,7 +581,7 @@ function renderDashboard() {
       </div>
     </div>` : `
     <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-3">
-      <span class="text-2xl">✨</span>
+      <span class="text-2xl"></span>
       <div>
         <p class="font-semibold text-emerald-900">Todo bajo control</p>
         <p class="text-sm text-emerald-700">No hay fechas urgentes con checklist incompleto.</p>
@@ -604,7 +604,7 @@ function renderDashboard() {
     ${postPending.length > 0 ? `
     <div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden">
       <div class="bg-amber-50 px-5 py-3 flex items-center gap-2 border-b border-amber-200">
-        <span class="text-xl">📋</span>
+        <span class="text-xl"></span>
         <h3 class="font-bold text-amber-900">Cierre post-evento pendiente</h3>
       </div>
       <div class="divide-y divide-slate-100">
@@ -668,7 +668,7 @@ function upcomingRow(e) {
       </div>
       <div class="flex-shrink-0 flex flex-col items-end gap-1">
         ${estadoBadge(e.estado)}
-        ${isUrgent ? '<span class="text-[10px] text-rose-600 font-semibold">⚠ revisar checklist</span>' : ''}
+        ${isUrgent ? '<span class="text-[10px] text-rose-600 font-semibold"> revisar checklist</span>' : ''}
       </div>
     </button>
   `;
@@ -789,8 +789,8 @@ function calendarRow(e) {
         </div>
         <p class="text-sm text-slate-500 mt-0.5">${e.ciudad}${e.productora?` · ${e.productora}`:""}${e.promotor?` · ${e.promotor}`:""}</p>
         <div class="flex items-center gap-3 mt-2 text-xs text-slate-500">
-          ${e.oferta ? `<span>💵 ${e.oferta}</span>` : ''}
-          ${e.responsable ? `<span>👤 ${e.responsable}</span>` : ''}
+          ${e.oferta ? `<span> ${e.oferta}</span>` : ''}
+          ${e.responsable ? `<span> ${e.responsable}</span>` : ''}
           ${e.estado !== 'Finalizado' && d >= 0 ? `<span class="font-semibold text-indigo-600">Pre-evento ${pre.done}/${pre.total}</span>` : ''}
           ${d < 0 ? `<span class="font-semibold text-amber-600">Post ${post.done}/${post.total}</span>` : ''}
         </div>
@@ -846,8 +846,8 @@ function renderSeguimiento() {
       <h2 class="text-2xl font-bold text-slate-900">Seguimiento de fechas</h2>
       <div class="flex gap-2">
         <div class="bg-white rounded-lg border border-slate-200 p-1 flex">
-          <button onclick="segView='feed';render()" class="px-3 py-1.5 rounded text-sm font-medium ${segView==='feed'?'bg-indigo-600 text-white':'text-slate-600'}">📰 Feed</button>
-          <button onclick="segView='tabla';render()" class="px-3 py-1.5 rounded text-sm font-medium ${segView==='tabla'?'bg-indigo-600 text-white':'text-slate-600'}">📊 Tabla</button>
+          <button onclick="segView='feed';render()" class="px-3 py-1.5 rounded text-sm font-medium ${segView==='feed'?'bg-indigo-600 text-white':'text-slate-600'}"> Feed</button>
+          <button onclick="segView='tabla';render()" class="px-3 py-1.5 rounded text-sm font-medium ${segView==='tabla'?'bg-indigo-600 text-white':'text-slate-600'}"> Tabla</button>
         </div>
         <button onclick="openUpdateModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow flex items-center gap-2">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.52 3.48A11.78 11.78 0 0012 0a12 12 0 00-10.27 18.07L0 24l6.13-1.6A12 12 0 0024 12a11.78 11.78 0 00-3.48-8.52zM12 22a10 10 0 01-5.1-1.4l-.36-.21-3.64.95.97-3.55-.23-.37A10 10 0 1122 12a10 10 0 01-10 10z"/></svg>
@@ -858,10 +858,10 @@ function renderSeguimiento() {
 
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      ${segStat("Updates esta semana", updatesThisWeek, "indigo", "💬")}
-      ${segStat("Oportunidades activas", activeOpps, "purple", "🎯")}
-      ${segStat("Sin contacto >14 días", stale.length, "rose", "⏰")}
-      ${segStat("Actualizaciones totales", state.updates.length, "emerald", "📨")}
+      ${segStat("Updates esta semana", updatesThisWeek, "indigo", "")}
+      ${segStat("Oportunidades activas", activeOpps, "purple", "")}
+      ${segStat("Sin contacto >14 días", stale.length, "rose", "")}
+      ${segStat("Actualizaciones totales", state.updates.length, "emerald", "")}
     </div>
 
     ${segView === "feed" ? renderSeguimientoFeed(recentUpdates, stale) : renderSeguimientoTabla()}
@@ -908,7 +908,7 @@ function renderSeguimientoFeed(recentUpdates, stale) {
     <div class="space-y-3">
       <div class="bg-white rounded-xl shadow-sm border border-rose-200 overflow-hidden">
         <div class="bg-gradient-to-r from-rose-500 to-orange-500 text-white px-5 py-3 flex items-center gap-2">
-          <span class="text-xl">⏰</span>
+          <span class="text-xl"></span>
           <h3 class="font-bold">Retomar contacto</h3>
         </div>
         <div class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
@@ -946,7 +946,7 @@ function updateCard(u) {
           ${opp?.estado ? pipelineEstadoBadge(opp.estado) : ''}
           ${opp?.prioridad ? prioridadBadge(opp.prioridad) : ''}
         </div>
-        ${u.contacto ? `<p class="text-xs text-slate-500 mt-1">📞 Contacto: ${u.contacto}</p>` : ''}
+        ${u.contacto ? `<p class="text-xs text-slate-500 mt-1"> Contacto: ${u.contacto}</p>` : ''}
         <p class="text-sm text-slate-700 mt-2 leading-relaxed">${u.comentario}</p>
       </div>
     </button>
@@ -1134,13 +1134,13 @@ function renderUpdateModal() {
       <!-- Pegar mensaje WhatsApp -->
       <details class="bg-emerald-50 border border-emerald-200 rounded-lg overflow-hidden">
         <summary class="px-4 py-3 cursor-pointer flex items-center gap-2 text-sm font-semibold text-emerald-900">
-          <span>📥</span> Pegar mensaje desde WhatsApp
+          <span></span> Pegar mensaje desde WhatsApp
           <span class="ml-auto text-xs text-emerald-600">click para abrir</span>
         </summary>
         <div class="p-4 space-y-2">
           <p class="text-xs text-emerald-800">Pegá un mensaje en formato libre. Intentaré detectar artista, productora, ciudad y comentario.</p>
           <textarea id="waText" rows="3" class="w-full px-3 py-2 rounded border border-emerald-300 text-sm" placeholder="Ej: Rafa calello - Crobar Buenos Aires - Jose me dijo que le hable la semana que viene, apuntamos a junio, prioridad media"></textarea>
-          <button onclick="parseWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded text-sm font-semibold">⚡ Auto-completar</button>
+          <button onclick="parseWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded text-sm font-semibold"> Auto-completar</button>
         </div>
       </details>
 
@@ -1271,7 +1271,7 @@ function parseWhatsApp() {
   const contactMatch = txt.match(/\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\s+(?:\(promotor\)|dijo|me dijo|comentó|avisó)/);
   if (contactMatch) upData.contacto = contactMatch[1];
 
-  toast("⚡ Auto-completado — revisá los campos");
+  toast(" Auto-completado — revisá los campos");
   renderUpdateModal();
 }
 
@@ -1359,8 +1359,8 @@ function sendToWhatsApp() {
   const encargado = upData.encargado || "";
 
   const msg = `*${artista}* — ${productora}${ciudad?` (${ciudad})`:""}\n` +
-              `${mes?`📅 ${mes} | `:""}${estado?`🎯 ${estado}`:""}${prioridad?` | ⚡ ${prioridad}`:""}\n` +
-              `${contacto?`📞 ${contacto}\n`:""}` +
+              `${mes?` ${mes} | `:""}${estado?` ${estado}`:""}${prioridad?` |  ${prioridad}`:""}\n` +
+              `${contacto?` ${contacto}\n`:""}` +
               `\n${coment}\n\n_— ${encargado}_`;
 
   const encoded = encodeURIComponent(msg);
@@ -1421,7 +1421,7 @@ function renderOpportunityModal(oppId) {
       <!-- Timeline -->
       <div>
         <h3 class="font-bold text-slate-900 mb-3 flex items-center gap-2">
-          <span>💬</span> Historial de contacto (${ups.length})
+          <span></span> Historial de contacto (${ups.length})
         </h3>
         ${ups.length === 0 ? '<p class="text-sm text-slate-400 italic">Sin actualizaciones registradas. Sumá la primera con el botón de arriba.</p>' :
         `<div class="space-y-3">
@@ -1438,7 +1438,7 @@ function renderOpportunityModal(oppId) {
                 <span class="font-semibold text-sm text-slate-900">${u.encargado}</span>
                 <span class="text-xs text-slate-400">·</span>
                 <span class="text-xs text-slate-500">${agoLbl} · ${date.toLocaleDateString("es-AR",{day:"2-digit",month:"short",year:"numeric"})} ${date.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}</span>
-                ${u.contacto ? `<span class="ml-auto text-xs text-slate-500">📞 ${u.contacto}</span>` : ''}
+                ${u.contacto ? `<span class="ml-auto text-xs text-slate-500"> ${u.contacto}</span>` : ''}
               </div>
               <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">${u.comentario}</p>
             </div>
@@ -1553,7 +1553,7 @@ function renderPlannerModal() {
 
       ${totalObj === 0 ? `
       <div class="bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-lg p-5 text-center">
-        <p class="text-sm text-indigo-900 font-medium">📝 Aún no hay objetivos planificados para ${artist.nombre} en ${plannerYear}</p>
+        <p class="text-sm text-indigo-900 font-medium"> Aún no hay objetivos planificados para ${artist.nombre} en ${plannerYear}</p>
         <p class="text-xs text-indigo-700 mt-1">Hacé click en "+ Sumar objetivo" en cualquier mes para empezar.</p>
       </div>` : ''}
     </div>
@@ -1608,11 +1608,11 @@ function targetCard(t) {
       <div class="flex items-center gap-1.5 mb-0.5">
         <span class="w-2 h-2 rounded-full ${c.dot}"></span>
         <span class="font-semibold text-slate-900 truncate flex-grow">${t.productora || t.ciudad || "Objetivo"}</span>
-        ${t.prioridad === "Alta" ? '<span class="text-[9px] font-bold text-red-600">⚡</span>' : ''}
+        ${t.prioridad === "Alta" ? '<span class="text-[9px] font-bold text-red-600"></span>' : ''}
       </div>
       ${t.ciudad && t.productora ? `<p class="text-slate-600 truncate">${t.ciudad}</p>` : ''}
-      ${t.contacto ? `<p class="text-slate-500 truncate">📞 ${t.contacto}</p>` : ''}
-      ${linked ? `<p class="text-[10px] text-indigo-600 mt-1">🔗 Vinculado a pipeline</p>` : ''}
+      ${t.contacto ? `<p class="text-slate-500 truncate"> ${t.contacto}</p>` : ''}
+      ${linked ? `<p class="text-[10px] text-indigo-600 mt-1"> Vinculado a pipeline</p>` : ''}
     </button>
   `;
 }
@@ -1730,7 +1730,7 @@ function renderTargetEditor() {
 
       <!-- Vínculo con pipeline -->
       <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
-        <label class="block text-sm font-medium text-slate-700 mb-2">🔗 Vincular con oportunidad de pipeline</label>
+        <label class="block text-sm font-medium text-slate-700 mb-2"> Vincular con oportunidad de pipeline</label>
         ${oppsArtist.length === 0 ? `
           <p class="text-xs text-slate-500">No hay oportunidades en pipeline para ${tgtData.artista}.</p>
         ` : `
@@ -1846,12 +1846,12 @@ function renderRoster() {
             </div>
           </div>` : '<div class="mt-4 text-xs text-slate-400 italic">Fees sin definir</div>'}
           <div class="mt-4 flex items-center justify-between text-xs text-slate-600">
-            <span>📅 ${proximas} próximas</span>
-            <span>✅ ${realizadas} realizadas</span>
-            <span>🎯 ${state.planner.filter(t=>t.artista===a.nombre).length} objetivos</span>
+            <span> ${proximas} próximas</span>
+            <span> ${realizadas} realizadas</span>
+            <span> ${state.planner.filter(t=>t.artista===a.nombre).length} objetivos</span>
           </div>
           <button onclick="openPlanner('${a.nombre.replace(/'/g,"\\'")}')" class="mt-3 w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow flex items-center justify-center gap-1.5">
-            <span>📅</span> Ver plan anual
+            <span></span> Ver plan anual
           </button>
           ${a.ig ? `<a href="https://instagram.com/${a.ig}" target="_blank" class="mt-2 block text-center text-xs text-indigo-600 hover:underline">@${a.ig}</a>` : ''}
         </div>
@@ -1948,13 +1948,13 @@ function renderWizard() {
 
 function wizardStep(s) {
   if (s === 1) return `
-    <h3 class="font-bold text-slate-900 text-lg mb-1">📅 ¿Cuándo es la fecha?</h3>
+    <h3 class="font-bold text-slate-900 text-lg mb-1"> ¿Cuándo es la fecha?</h3>
     <p class="text-sm text-slate-500 mb-5">Empezamos por lo más importante.</p>
     <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
     <input id="w_fecha" type="date" value="${wizData.fecha||''}" class="w-full px-4 py-3 rounded-lg border border-slate-300 text-base">
   `;
   if (s === 2) return `
-    <h3 class="font-bold text-slate-900 text-lg mb-1">🎧 ¿Qué artista toca?</h3>
+    <h3 class="font-bold text-slate-900 text-lg mb-1"> ¿Qué artista toca?</h3>
     <p class="text-sm text-slate-500 mb-5">Seleccioná del roster o agregá uno nuevo.</p>
     <label class="block text-sm font-medium text-slate-700 mb-1">Artista</label>
     <select id="w_artista" class="w-full px-4 py-3 rounded-lg border border-slate-300 text-base">
@@ -1963,7 +1963,7 @@ function wizardStep(s) {
     </select>
   `;
   if (s === 3) return `
-    <h3 class="font-bold text-slate-900 text-lg mb-1">📍 ¿Dónde y con quién?</h3>
+    <h3 class="font-bold text-slate-900 text-lg mb-1"> ¿Dónde y con quién?</h3>
     <p class="text-sm text-slate-500 mb-5">Datos del venue y la productora.</p>
     <div class="space-y-4">
       <div>
@@ -1982,7 +1982,7 @@ function wizardStep(s) {
     </div>
   `;
   if (s === 4) return `
-    <h3 class="font-bold text-slate-900 text-lg mb-1">💰 Oferta económica</h3>
+    <h3 class="font-bold text-slate-900 text-lg mb-1"> Oferta económica</h3>
     <p class="text-sm text-slate-500 mb-5">Cuánto pagan y si hay seña.</p>
     <div class="space-y-4">
       <div>
@@ -1999,7 +1999,7 @@ function wizardStep(s) {
     </div>
   `;
   if (s === 5) return `
-    <h3 class="font-bold text-slate-900 text-lg mb-1">👤 Estado y responsable</h3>
+    <h3 class="font-bold text-slate-900 text-lg mb-1"> Estado y responsable</h3>
     <p class="text-sm text-slate-500 mb-5">¿Quién está a cargo y en qué etapa está la fecha?</p>
     <div class="space-y-4">
       <div>
@@ -2023,7 +2023,7 @@ function wizardStep(s) {
     </div>
   `;
   if (s === 6) return `
-    <h3 class="font-bold text-slate-900 text-lg mb-1">📝 Logística y comentarios</h3>
+    <h3 class="font-bold text-slate-900 text-lg mb-1"> Logística y comentarios</h3>
     <p class="text-sm text-slate-500 mb-5">Detalles finales (opcional).</p>
     <div class="space-y-4">
       <div>
@@ -2180,11 +2180,11 @@ function renderPreChecklist(e) {
   let banner = "";
   if (d >= 0 && d <= limitDays) {
     banner = `<div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-900 mb-4">
-      ⚠ <strong>Última semana:</strong> el límite para tener todo confirmado es a 7 días del evento. Quedan ${d} día${d!==1?'s':''}.
+       <strong>Última semana:</strong> el límite para tener todo confirmado es a 7 días del evento. Quedan ${d} día${d!==1?'s':''}.
     </div>`;
   } else if (d > limitDays) {
     banner = `<div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-sm text-indigo-900 mb-4">
-      📌 Tenés ${remaining} día${remaining!==1?'s':''} hasta el límite (1 semana antes del evento).
+       Tenés ${remaining} día${remaining!==1?'s':''} hasta el límite (1 semana antes del evento).
     </div>`;
   }
   return banner + PRE_CHECKLIST.map(item => checklistItem(e, item, "Pre")).join("");
