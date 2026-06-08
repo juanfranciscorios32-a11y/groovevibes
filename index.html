@@ -26,8 +26,47 @@
 </head>
 <body class="bg-slate-50 min-h-screen">
 
+<!-- ================= LOGIN OVERLAY ================= -->
+<div id="loginOverlay" class="fixed inset-0 z-[100] gradient-bg flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div class="text-center mb-6">
+      <div class="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 items-center justify-center font-bold text-white text-2xl mb-3">GV</div>
+      <h1 class="font-bold text-2xl text-slate-900">Groovevibes</h1>
+      <p class="text-sm text-slate-500">Sistema de gestión</p>
+    </div>
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+        <input id="loginEmail" type="email" required autocomplete="email"
+          class="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+        <input id="loginPassword" type="password" required autocomplete="current-password"
+          class="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+      </div>
+      <div id="loginError" class="hidden text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-3"></div>
+      <button id="loginSubmit" type="submit"
+        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg shadow-lg transition">
+        Ingresar
+      </button>
+    </form>
+    <p class="text-xs text-slate-400 text-center mt-6">
+      Si sos artista del roster y aún no tenés cuenta, contactá al admin.
+    </p>
+  </div>
+</div>
+
+<!-- ================= BOOT LOADER ================= -->
+<div id="bootLoader" class="fixed inset-0 z-[99] bg-slate-50 flex items-center justify-center">
+  <div class="text-center">
+    <div class="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+    <p class="text-sm text-slate-500">Cargando...</p>
+  </div>
+</div>
+
 <!-- ================= NAVBAR ================= -->
-<nav class="gradient-bg text-white shadow-lg sticky top-0 z-40">
+<nav id="mainNav" class="hidden gradient-bg text-white shadow-lg sticky top-0 z-40">
   <div class="max-w-7xl mx-auto px-4 sm:px-6">
     <div class="flex justify-between items-center h-16">
       <div class="flex items-center gap-3">
@@ -38,33 +77,47 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="openNewDate()" class="hidden sm:inline-flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-4 py-2 rounded-lg text-sm shadow">
+        <button onclick="openNewDate()" data-admin-only class="hidden sm:inline-flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-4 py-2 rounded-lg text-sm shadow">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           Agendar fecha
         </button>
-        <div class="hidden sm:flex items-center gap-2 bg-white/10 rounded-full px-3 py-1.5">
-          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-pink-400 to-orange-400 flex items-center justify-center text-xs font-bold">JF</div>
-          <span class="text-sm">Juanfra</span>
+        <div class="relative" id="userMenuWrap">
+          <button onclick="toggleUserMenu()" class="hidden sm:flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-full px-3 py-1.5 transition">
+            <div id="userAvatar" class="w-7 h-7 rounded-full bg-gradient-to-br from-pink-400 to-orange-400 flex items-center justify-center text-xs font-bold">JF</div>
+            <span id="userName" class="text-sm">Cargando...</span>
+            <span id="userRoleBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-semibold uppercase tracking-wider"></span>
+            <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="userMenu" class="hidden absolute right-0 mt-2 w-56 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+            <div class="px-4 py-3 border-b border-slate-100">
+              <p class="text-xs text-slate-500">Sesión</p>
+              <p id="userMenuEmail" class="text-sm font-semibold truncate">—</p>
+            </div>
+            <button onclick="handleLogout()" class="w-full text-left px-4 py-3 hover:bg-rose-50 text-rose-600 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </div>
     </div>
     <div class="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-      <button onclick="navigate('dashboard')" data-tab="dashboard" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Dashboard</button>
-      <button onclick="navigate('calendario')" data-tab="calendario" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Calendario</button>
-      <button onclick="navigate('seguimiento')" data-tab="seguimiento" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Seguimiento</button>
-      <button onclick="navigate('roster')" data-tab="roster" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Roster</button>
-      <button onclick="navigate('venues')" data-tab="venues" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Venues</button>
+      <button onclick="navigate('dashboard')" data-tab="dashboard" data-roles="admin,artista" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Dashboard</button>
+      <button onclick="navigate('calendario')" data-tab="calendario" data-roles="admin,artista" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Calendario</button>
+      <button onclick="navigate('seguimiento')" data-tab="seguimiento" data-roles="admin" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Seguimiento</button>
+      <button onclick="navigate('roster')" data-tab="roster" data-roles="admin" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Roster</button>
+      <button onclick="navigate('venues')" data-tab="venues" data-roles="admin" class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium hover:bg-white/10">Venues</button>
     </div>
   </div>
 </nav>
 
 <!-- Floating add button (mobile) -->
-<button onclick="openNewDate()" class="sm:hidden fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl flex items-center justify-center">
+<button onclick="openNewDate()" data-admin-only class="sm:hidden fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl flex items-center justify-center">
   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
 </button>
 
 <!-- ================= MAIN ================= -->
-<main id="app" class="max-w-7xl mx-auto px-4 sm:px-6 py-6"></main>
+<main id="app" class="hidden max-w-7xl mx-auto px-4 sm:px-6 py-6"></main>
 
 <!-- ================= NEW DATE WIZARD MODAL ================= -->
 <div id="wizardModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto">
@@ -126,6 +179,10 @@
 
 <!-- ================= TOAST ================= -->
 <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl text-sm"></div>
+
+<!-- Supabase SDK (debe cargarse ANTES de supabase-client.js y del script principal) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 
 <script>
 /* ============================================================
@@ -557,7 +614,7 @@ function renderDashboard() {
     <!-- Hero -->
     <div class="gradient-bg text-white rounded-2xl p-6 sm:p-8 shadow-lg">
       <p class="text-indigo-200 text-sm">${new Date().toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
-      <h2 class="text-2xl sm:text-3xl font-bold mt-1">Hola Juanfra </h2>
+      <h2 class="text-2xl sm:text-3xl font-bold mt-1">Hola ${(state.currentUser || 'bienvenido')}</h2>
       <p class="text-indigo-100 mt-2">Tenés <span class="font-bold text-white">${urgent.length}</span> fecha${urgent.length!==1?'s':''} urgente${urgent.length!==1?'s':''} y <span class="font-bold text-white">${upcoming.length}</span> próximas en agenda.</p>
     </div>
 
@@ -1917,6 +1974,10 @@ const WIZ_STEPS = 6;
 let wizData = {};
 
 function openNewDate() {
+  if (typeof currentRole !== "undefined" && currentRole && currentRole !== "admin") {
+    toast("Solo los admin pueden agendar fechas.");
+    return;
+  }
   wizStep = 1;
   wizData = { id: "e" + Date.now(), checklistPre: {}, checklistPost: {}, gastos: 0 };
   document.getElementById("wizardModal").classList.remove("hidden");
@@ -2278,9 +2339,162 @@ function toast(msg) {
 }
 
 /* ============================================================
-   INIT
+   AUTH GATE + INIT
 ============================================================ */
-navigate("dashboard");
+
+let currentRole = null;   // 'admin' | 'artista'
+let currentSession = null;
+
+function showLogin() {
+  document.getElementById("loginOverlay").classList.remove("hidden");
+  document.getElementById("bootLoader").classList.add("hidden");
+  document.getElementById("mainNav").classList.add("hidden");
+  document.getElementById("app").classList.add("hidden");
+  // limpiar campos por las dudas
+  const pw = document.getElementById("loginPassword");
+  if (pw) pw.value = "";
+  const errBox = document.getElementById("loginError");
+  if (errBox) errBox.classList.add("hidden");
+}
+
+function showBoot() {
+  document.getElementById("loginOverlay").classList.add("hidden");
+  document.getElementById("bootLoader").classList.remove("hidden");
+}
+
+function showApp() {
+  document.getElementById("loginOverlay").classList.add("hidden");
+  document.getElementById("bootLoader").classList.add("hidden");
+  document.getElementById("mainNav").classList.remove("hidden");
+  document.getElementById("app").classList.remove("hidden");
+}
+
+function applyRoleToNav(profile) {
+  const role = profile?.role || "artista";
+  currentRole = role;
+  // Mostrar / ocultar tabs según data-roles
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    const allowed = (btn.dataset.roles || "").split(",").map(s => s.trim());
+    btn.classList.toggle("hidden", !allowed.includes(role));
+  });
+  // Mostrar / ocultar elementos admin-only (botón flotante "Agendar fecha")
+  document.querySelectorAll("[data-admin-only]").forEach(el => {
+    el.classList.toggle("hidden", role !== "admin");
+  });
+  // Avatar + nombre + role badge
+  const name = profile?.full_name || profile?.email || "Usuario";
+  const initials = name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0,2).join("").toUpperCase() || "?";
+  document.getElementById("userAvatar").textContent = initials;
+  document.getElementById("userName").textContent = name;
+  const badge = document.getElementById("userRoleBadge");
+  badge.textContent = role;
+  badge.classList.remove("bg-emerald-500","bg-indigo-500");
+  badge.classList.add(role === "admin" ? "bg-emerald-500" : "bg-indigo-500");
+  document.getElementById("userMenuEmail").textContent = profile?.email || "—";
+  // Para el saludo del dashboard
+  state.currentUser = profile?.full_name || profile?.email?.split("@")[0] || "—";
+}
+
+function safeNavigateForRole() {
+  // Si el tab actual no está permitido para este rol, ir a dashboard
+  const allowedTabs = Array.from(document.querySelectorAll(".tab-btn"))
+    .filter(b => !b.classList.contains("hidden"))
+    .map(b => b.dataset.tab);
+  const target = allowedTabs.includes(currentTab) ? currentTab : (allowedTabs[0] || "dashboard");
+  navigate(target);
+}
+
+// Guard para impedir navegar a un tab no permitido (anti-tampering desde consola)
+const _originalNavigate = navigate;
+navigate = function (tab) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+  if (btn && btn.classList.contains("hidden")) {
+    console.warn("[gv] tab no permitido para rol", currentRole, ":", tab);
+    return;
+  }
+  _originalNavigate(tab);
+};
+
+async function bootApp(session, profile) {
+  currentSession = session;
+  if (!profile) {
+    // Sesión sin profile (caso raro: usuario en auth.users pero no en profiles)
+    document.getElementById("loginError").textContent =
+      "Tu cuenta existe pero no tiene un profile en el sistema. Contactá al admin.";
+    document.getElementById("loginError").classList.remove("hidden");
+    await gvAuth.signOut();
+    showLogin();
+    return;
+  }
+  applyRoleToNav(profile);
+  showApp();
+  safeNavigateForRole();
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const btn = document.getElementById("loginSubmit");
+  const errBox = document.getElementById("loginError");
+  errBox.classList.add("hidden");
+  btn.disabled = true;
+  btn.textContent = "Ingresando...";
+  const { error, session, profile } = await gvAuth.signIn(email, password);
+  btn.disabled = false;
+  btn.textContent = "Ingresar";
+  if (error) {
+    errBox.textContent = error.message === "Invalid login credentials"
+      ? "Email o contraseña incorrectos."
+      : error.message;
+    errBox.classList.remove("hidden");
+    return;
+  }
+  showBoot();
+  await bootApp(session, profile);
+}
+
+async function handleLogout() {
+  showBoot();
+  await gvAuth.signOut();
+  currentRole = null;
+  currentSession = null;
+  showLogin();
+}
+
+function toggleUserMenu() {
+  const m = document.getElementById("userMenu");
+  m.classList.toggle("hidden");
+}
+// Cerrar el menú si se hace clic afuera
+document.addEventListener("click", (e) => {
+  const wrap = document.getElementById("userMenuWrap");
+  const menu = document.getElementById("userMenu");
+  if (wrap && menu && !wrap.contains(e.target) && !menu.classList.contains("hidden")) {
+    menu.classList.add("hidden");
+  }
+});
+
+// Reaccionar a cambios de sesión (logout en otra pestaña, token expirado, etc)
+gvAuth.onAuthChange((event, session, profile) => {
+  if (event === "SIGNED_OUT" || !session) {
+    showLogin();
+  } else if (event === "TOKEN_REFRESHED") {
+    // nada visual, solo actualiza la sesión interna
+    currentSession = session;
+  }
+});
+
+// ---------- Boot inicial ----------
+(async function init() {
+  const session = await gvAuth.getSession();
+  if (!session) {
+    showLogin();
+    return;
+  }
+  const profile = await gvAuth.getProfile();
+  await bootApp(session, profile);
+})();
 </script>
 </body>
 </html>
