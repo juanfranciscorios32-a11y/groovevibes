@@ -186,9 +186,17 @@
 
 <script>
 /* ============================================================
-   DATA — sincronizado desde "Gestion Groovevibes"
+   DATA — la data real vive en Supabase. Estas listas se
+   llenan en loadStateFromDB() y se usan como source para
+   autocompletes (datalist) y dropdowns.
 ============================================================ */
 const SEED = {
+  artistas: [],
+  venues: []
+};
+
+/* ---- Bloque legacy del SEED original (no se usa, conservado como referencia) ---- */
+const _LEGACY_SEED_UNUSED = {
   artistas: [
     { nombre: "Rafa Calello", real: "Rafael Alejo Calello", genero: "Tech House", feeMin: 700, feeStd: 900, feeIdeal: 1100, moneda: "USD", ig: "rafael.calello.dj" },
     { nombre: "Andres Koller", real: "Andres Koller", genero: "Techno", feeMin: 700, feeStd: 900, feeIdeal: 1100, moneda: "USD", ig: "" },
@@ -438,69 +446,148 @@ const SEED = {
   ]
 };
 
-/* Estado mutable: se persiste en localStorage */
-const STORAGE_KEY = "groovevibes_state_v1";
-let state = loadState();
+/* ============================================================
+   Estado mutable — ahora se persiste en Supabase.
+   loadStateFromDB() lo refresca; las mutaciones (wizard,
+   checklists, oportunidades, planner) escriben directo al DB.
+============================================================ */
+let state = {
+  artistas: [],
+  venues: [],
+  calendario: [],
+  pipeline: [],
+  updates: [],
+  planner: [],
+  currentUser: ""
+};
 
-function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && saved.calendario) {
-      // Migración: agregar IDs a pipeline si faltan, sembrar updates desde obs si está vacío
-      saved.pipeline = (saved.pipeline || []).map((p, i) => ({ ...p, id: p.id || ("p" + String(i+1).padStart(3,"0")) }));
-      if (!saved.updates || saved.updates.length === 0) {
-        saved.updates = [];
-        saved.pipeline.forEach((p, idx) => {
-          if (p.obs) {
-            const ts = p.ultimoFollow && /^\d{4}-\d{2}-\d{2}$/.test(p.ultimoFollow)
-              ? new Date(p.ultimoFollow + "T12:00:00").toISOString()
-              : new Date(Date.now() - (60 + idx) * 86400000).toISOString();
-            saved.updates.push({
-              id: "u_init_" + idx,
-              oppId: p.id,
-              timestamp: ts,
-              encargado: p.encargado || "—",
-              comentario: p.obs,
-              contacto: p.contacto || ""
-            });
-          }
-        });
-      }
-      saved.currentUser = saved.currentUser || "Juanfra";
-      saved.planner = saved.planner || [];
-      return saved;
+async function loadStateFromDB() {
+  const [artRes, fechasRes, venuesRes, oppsRes, updatesRes, plannerRes, checklistRes] = await Promise.all([
+    sb.from("artistas").select("id,nombre,genero,instagram,soundcloud,foto_url,activo").order("nombre"),
+    sb.from("fechas").select("*, artistas(id,nombre)").order("fecha"),
+    sb.from("venues").select("*").order("nombre"),
+    sb.from("oportunidades").select("*, artistas(id,nombre)").order("created_at", { ascending: false }),
+    sb.from("oportunidad_updates").select("*").order("created_at", { ascending: false }),
+    sb.from("planner_targets").select("*, artistas(id,nombre)"),
+    sb.from("checklist_items").select("fecha_id, fase, item_key, completado, info, categoria")
+  ]);
+
+  for (const r of [artRes, fechasRes, venuesRes, oppsRes, updatesRes, plannerRes, checklistRes]) {
+    if (r.error) {
+      console.error("[gv] loadStateFromDB error:", r.error.message);
+      throw r.error;
     }
-  } catch(e){}
-  // estado inicial: copia de SEED + checklists + IDs en pipeline + updates iniciales desde obs
-  const pipeline = SEED.pipeline.map((p, i) => ({ ...p, id: "p" + String(i+1).padStart(3,"0") }));
-  const updates = [];
-  pipeline.forEach((p, idx) => {
-    if (p.obs) {
-      const ts = p.ultimoFollow && /^\d{4}-\d{2}-\d{2}$/.test(p.ultimoFollow)
-        ? new Date(p.ultimoFollow + "T12:00:00").toISOString()
-        : new Date(Date.now() - (60 + idx) * 86400000).toISOString();
-      updates.push({
-        id: "u_init_" + idx,
-        oppId: p.id,
-        timestamp: ts,
-        encargado: p.encargado || "—",
-        comentario: p.obs,
-        contacto: p.contacto || ""
-      });
+  }
+
+  // ARTISTAS
+  state.artistas = (artRes.data || []).map(a => ({
+    id: a.id, nombre: a.nombre, genero: a.genero, ig: a.instagram,
+    soundcloud: a.soundcloud, foto: a.foto_url, activo: a.activo
+  }));
+
+  // VENUES
+  state.venues = (venuesRes.data || []).map(v => ({
+    id: v.id, nombre: v.nombre, ciudad: v.ciudad,
+    contacto: v.contacto_nombre, telefono: v.contacto_whatsapp
+  }));
+
+  // FECHAS + checklist embebido
+  const fechasById = {};
+  state.calendario = (fechasRes.data || []).map(f => {
+    const o = {
+      id: f.id,
+      fecha: f.fecha,
+      artista: f.artistas?.nombre || "",
+      artista_id: f.artista_id,
+      ciudad: f.ciudad || "",
+      productora: f.productora_texto || "",
+      venue_id: f.venue_id,
+      promotor: f.promotor_texto || "",
+      promotor_id: f.promotor_id,
+      estado: f.estado || "",
+      oferta: f.oferta_texto || "",
+      sena: f.anticipo_cobrado === true ? "Si" : f.anticipo_cobrado === false ? "No" : "",
+      responsable: f.responsable || "",
+      gastosViaje: f.gastos_viaje || "",
+      logistica: f.logistica || "",
+      comentarios: f.comentarios || "",
+      checklistPre: {},
+      checklistPost: {},
+      gastos: 0
+    };
+    fechasById[f.id] = o;
+    return o;
+  });
+
+  // Adosar items de checklist (un row por item, una fecha tiene 14 rows)
+  (checklistRes.data || []).forEach(ci => {
+    const f = fechasById[ci.fecha_id];
+    if (!f) return;
+    const bucket = ci.fase === "pre" ? f.checklistPre : f.checklistPost;
+    if (ci.categoria === "check") {
+      bucket[ci.item_key] = !!ci.completado;
+    } else {
+      bucket[ci.item_key] = ci.info || "";
     }
   });
-  return {
-    calendario: SEED.calendario.map(e => ({ ...e, checklistPre: {}, checklistPost: {}, gastos: 0 })),
-    pipeline,
-    updates,
-    planner: [],
-    currentUser: "Juanfra"
-  };
+
+  // OPORTUNIDADES (pipeline)
+  state.pipeline = (oppsRes.data || []).map(o => ({
+    id: o.id,
+    artista: o.artistas?.nombre || "",
+    artista_id: o.artista_id,
+    productora: o.productora || "",
+    venue_id: o.venue_id,
+    ciudad: o.ciudad || "",
+    mes: o.mes_objetivo || "",
+    encargado: o.encargado || "",
+    estado: o.estado || "",
+    prioridad: o.prioridad || "",
+    contacto: o.contacto || "",
+    feeObj: o.fee_objetivo || "",
+    proximo: o.notas || ""
+  }));
+
+  // UPDATES de oportunidades
+  state.updates = (updatesRes.data || []).map(u => ({
+    id: u.id,
+    oppId: u.oportunidad_id,
+    timestamp: u.created_at,
+    encargado: u.autor_nombre || "—",
+    contacto: u.contacto || "",
+    comentario: u.comentario || ""
+  }));
+
+  // PLANNER targets
+  state.planner = (plannerRes.data || []).map(t => ({
+    id: t.id,
+    artista: t.artistas?.nombre || "",
+    artista_id: t.artista_id,
+    year: t.year,
+    month: t.month,
+    productora: t.productora || "",
+    venue_id: t.venue_id,
+    ciudad: t.ciudad || "",
+    contacto: t.contacto || "",
+    prioridad: t.prioridad || "Media",
+    status: t.status || "tentativa",
+    notas: t.notas || "",
+    oppId: t.oportunidad_id
+  }));
+
+  // Refrescar SEED.artistas y SEED.venues (los usan los autocomplete + dropdowns)
+  SEED.artistas.length = 0;
+  state.artistas.forEach(a => SEED.artistas.push({ nombre: a.nombre, genero: a.genero, ig: a.ig }));
+  SEED.venues.length = 0;
+  state.venues.forEach(v => SEED.venues.push({ nombre: v.nombre, ciudad: v.ciudad, contacto: v.contacto }));
+
+  return state;
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
+// saveState() ya no escribe a localStorage: cada mutación persiste a Supabase
+// directamente. Lo dejamos como no-op para no tocar todos los call sites
+// hasta haber migrado cada CRUD.
+function saveState() { /* no-op — DB writes happen inline */ }
 
 /* Datos derivados */
 function todayISO() { return new Date().toISOString().slice(0,10); }
@@ -1332,8 +1419,8 @@ function parseWhatsApp() {
   renderUpdateModal();
 }
 
-function saveUpdate() {
-  // Capturar valores actuales
+async function saveUpdate() {
+  // Capturar valores actuales del form
   const $ = id => document.getElementById(id)?.value || "";
   upData.artista = $("up_artista") || upData.artista;
   upData.productora = $("up_productora") || upData.productora;
@@ -1346,58 +1433,94 @@ function saveUpdate() {
   if (!upData.comentario) { toast("Falta el comentario"); return; }
   if (!upData.encargado) { toast("Indicá el encargado"); return; }
 
+  // Resolver artista_id
+  const artista = state.artistas.find(a => a.nombre === upData.artista);
+  if (!artista) { toast("Artista no encontrado en el roster"); return; }
+
   let oppId = upTargetOppId;
+  let opp = oppId ? state.pipeline.find(p => p.id === oppId) : null;
+
   // Si no hay target, buscar oportunidad existente con mismo artista + productora
   if (!oppId) {
     const existing = state.pipeline.find(p =>
       p.artista === upData.artista &&
-      (p.productora||"").toLowerCase() === (upData.productora||"").toLowerCase() &&
+      (p.productora || "").toLowerCase() === (upData.productora || "").toLowerCase() &&
       (upData.productora || "")
     );
-    if (existing) {
-      oppId = existing.id;
-      // actualizar campos de la oportunidad si vinieron nuevos
-      if (upData.estado) existing.estado = upData.estado;
-      if (upData.prioridad) existing.prioridad = upData.prioridad;
-      if (upData.contacto) existing.contacto = upData.contacto;
-      if (upData.mes) existing.mes = upData.mes;
-      if (upData.encargado) existing.encargado = upData.encargado;
-    } else {
-      // crear nueva oportunidad
-      oppId = "p" + Date.now();
-      state.pipeline.push({
-        id: oppId,
-        artista: upData.artista,
-        productora: upData.productora || "",
-        ciudad: upData.ciudad || "",
-        mes: upData.mes || "",
-        encargado: upData.encargado,
-        estado: upData.estado || "Consultar",
-        prioridad: upData.prioridad || "Media",
-        contacto: upData.contacto || ""
+    if (existing) { oppId = existing.id; opp = existing; }
+  }
+
+  if (opp) {
+    // Update existing oportunidad
+    const patch = {};
+    if (upData.estado) patch.estado = upData.estado;
+    if (upData.prioridad) patch.prioridad = upData.prioridad;
+    if (upData.contacto) patch.contacto = upData.contacto;
+    if (upData.mes) patch.mes_objetivo = upData.mes;
+    if (upData.encargado) patch.encargado = upData.encargado;
+    if (Object.keys(patch).length > 0) {
+      const { error } = await sb.from("oportunidades").update(patch).eq("id", oppId);
+      if (error) { toast("Error: " + error.message); return; }
+      Object.assign(opp, {
+        estado: patch.estado ?? opp.estado,
+        prioridad: patch.prioridad ?? opp.prioridad,
+        contacto: patch.contacto ?? opp.contacto,
+        mes: patch.mes_objetivo ?? opp.mes,
+        encargado: patch.encargado ?? opp.encargado
       });
     }
   } else {
-    // actualizar oportunidad existente
-    const opp = state.pipeline.find(p => p.id === oppId);
-    if (opp) {
-      if (upData.estado) opp.estado = upData.estado;
-      if (upData.prioridad) opp.prioridad = upData.prioridad;
-      if (upData.contacto) opp.contacto = upData.contacto;
-      if (upData.mes) opp.mes = upData.mes;
-    }
+    // Crear oportunidad nueva
+    const venue = state.venues.find(v => v.nombre.toLowerCase() === (upData.productora||"").toLowerCase());
+    const { data, error } = await sb.from("oportunidades").insert({
+      artista_id: artista.id,
+      venue_id: venue?.id || null,
+      productora: upData.productora || null,
+      ciudad: upData.ciudad || null,
+      mes_objetivo: upData.mes || null,
+      encargado: upData.encargado,
+      estado: upData.estado || "Consultar",
+      prioridad: upData.prioridad || "Media",
+      contacto: upData.contacto || null
+    }).select("id").single();
+    if (error) { toast("Error: " + error.message); return; }
+    oppId = data.id;
+    state.pipeline.unshift({
+      id: oppId,
+      artista: upData.artista,
+      artista_id: artista.id,
+      productora: upData.productora || "",
+      venue_id: venue?.id || null,
+      ciudad: upData.ciudad || "",
+      mes: upData.mes || "",
+      encargado: upData.encargado,
+      estado: upData.estado || "Consultar",
+      prioridad: upData.prioridad || "Media",
+      contacto: upData.contacto || "",
+      feeObj: "", proximo: ""
+    });
   }
 
-  // Crear update
-  state.updates.push({
-    id: "u" + Date.now(),
+  // Crear update en la timeline
+  const profile = await gvAuth.getProfile();
+  const { data: upRow, error: upErr } = await sb.from("oportunidad_updates").insert({
+    oportunidad_id: oppId,
+    autor_profile_id: profile?.id || null,
+    autor_nombre: upData.encargado,
+    contacto: upData.contacto || null,
+    comentario: upData.comentario
+  }).select("id, created_at").single();
+  if (upErr) { toast("Error update: " + upErr.message); return; }
+
+  state.updates.unshift({
+    id: upRow.id,
     oppId,
-    timestamp: new Date().toISOString(),
+    timestamp: upRow.created_at,
     encargado: upData.encargado,
-    contacto: upData.contacto,
+    contacto: upData.contacto || "",
     comentario: upData.comentario
   });
-  saveState();
+
   toast("✓ Actualización registrada");
   closeUpdateModal();
   render();
@@ -1506,12 +1629,13 @@ function renderOpportunityModal(oppId) {
   `;
 }
 
-function deleteOpportunity(oppId) {
+async function deleteOpportunity(oppId) {
+  // En DB hay ON DELETE CASCADE para oportunidad_updates y SET NULL para planner_targets.oportunidad_id
+  const { error } = await sb.from("oportunidades").delete().eq("id", oppId);
+  if (error) { toast("Error: " + error.message); return; }
   state.pipeline = state.pipeline.filter(p => p.id !== oppId);
   state.updates = state.updates.filter(u => u.oppId !== oppId);
-  // si había planner targets enlazados, los desvinculo (no los borro)
   state.planner.forEach(t => { if (t.oppId === oppId) t.oppId = null; });
-  saveState();
   closeOpportunity();
   toast("Oportunidad eliminada");
   render();
@@ -1828,8 +1952,8 @@ function autofillFromVenue(name) {
   }
 }
 
-function saveTarget() {
-  // capturar valores actuales
+async function saveTarget() {
+  // capturar valores actuales del form
   const $ = id => document.getElementById(id)?.value || "";
   tgtData.productora = $("tgt_prod") || tgtData.productora;
   tgtData.ciudad = $("tgt_ciudad") || tgtData.ciudad;
@@ -1841,23 +1965,46 @@ function saveTarget() {
     return;
   }
 
+  // Resolver artista_id por nombre
+  const artista = state.artistas.find(a => a.nombre === tgtData.artista);
+  if (!artista) { toast("Artista no encontrado"); return; }
+  const venue = state.venues.find(v => v.nombre.toLowerCase() === (tgtData.productora||"").toLowerCase());
+
+  const payload = {
+    artista_id: artista.id,
+    year: tgtData.year,
+    month: tgtData.month,
+    productora: tgtData.productora || null,
+    venue_id: venue?.id || null,
+    ciudad: tgtData.ciudad || null,
+    contacto: tgtData.contacto || null,
+    prioridad: tgtData.prioridad || "Media",
+    status: tgtData.status || "tentativa",
+    notas: tgtData.notas || null,
+    oportunidad_id: tgtData.oppId || null
+  };
+
   if (tgtEditingId) {
+    const { error } = await sb.from("planner_targets").update(payload).eq("id", tgtEditingId);
+    if (error) { toast("Error: " + error.message); return; }
     const idx = state.planner.findIndex(t => t.id === tgtEditingId);
-    if (idx >= 0) state.planner[idx] = { ...tgtData };
+    if (idx >= 0) state.planner[idx] = { ...tgtData, id: tgtEditingId, artista_id: artista.id, venue_id: venue?.id || null };
   } else {
-    state.planner.push({ ...tgtData });
+    const { data, error } = await sb.from("planner_targets").insert(payload).select("id").single();
+    if (error) { toast("Error: " + error.message); return; }
+    state.planner.push({ ...tgtData, id: data.id, artista_id: artista.id, venue_id: venue?.id || null });
   }
-  saveState();
+
   closeTargetEditor();
   toast(tgtEditingId ? "Objetivo actualizado" : "Objetivo agregado");
   renderPlannerModal();
-  // si el roster está abierto, refrescar contador
   if (currentTab === "roster") render();
 }
 
-function deleteTarget(id) {
+async function deleteTarget(id) {
+  const { error } = await sb.from("planner_targets").delete().eq("id", id);
+  if (error) { toast("Error: " + error.message); return; }
   state.planner = state.planner.filter(t => t.id !== id);
-  saveState();
   closeTargetEditor();
   toast("Objetivo eliminado");
   renderPlannerModal();
@@ -2139,13 +2286,78 @@ function prevStep() {
   if (wizStep > 1) wizStep--;
   renderWizard();
 }
-function finishWizard() {
-  state.calendario.push({...wizData});
-  saveState();
+async function finishWizard() {
+  // Resolver artista_id por nombre del roster
+  const artista = state.artistas.find(a => a.nombre === wizData.artista);
+  if (!artista) { toast("Artista no encontrado en el roster"); return; }
+
+  // Buscar venue por nombre (si está en catálogo)
+  let venue_id = null;
+  if (wizData.productora) {
+    const v = state.venues.find(x => x.nombre.toLowerCase() === wizData.productora.toLowerCase());
+    if (v) venue_id = v.id;
+  }
+
+  const payload = {
+    artista_id: artista.id,
+    venue_id,
+    fecha: wizData.fecha,
+    ciudad: wizData.ciudad || null,
+    productora_texto: wizData.productora || null,
+    promotor_texto: wizData.promotor || null,
+    estado: wizData.estado || "Por confirmar",
+    oferta_texto: wizData.oferta || null,
+    anticipo_cobrado: wizData.sena === "Si" ? true : wizData.sena === "No" ? false : null,
+    responsable: wizData.responsable || null,
+    logistica: wizData.logistica || null,
+    comentarios: wizData.comentarios || null
+  };
+
+  const { data, error } = await sb.from("fechas").insert(payload).select("id").single();
+  if (error) { toast("Error: " + error.message); return; }
+
+  // El trigger creó automáticamente los checklist_items vacíos.
+  // Re-pulleamos solo esta fecha + su checklist para sumarla a state.
+  await refreshOneFecha(data.id);
   closeWizard();
   toast("✓ Fecha agendada");
   navigate("calendario");
-  setTimeout(()=>openEvent(wizData.id), 300);
+  setTimeout(() => openEvent(data.id), 300);
+}
+
+async function refreshOneFecha(fechaId) {
+  const [fechaRes, checklistRes] = await Promise.all([
+    sb.from("fechas").select("*, artistas(id,nombre)").eq("id", fechaId).single(),
+    sb.from("checklist_items").select("fecha_id, fase, item_key, completado, info, categoria").eq("fecha_id", fechaId)
+  ]);
+  if (fechaRes.error || !fechaRes.data) return;
+  const f = fechaRes.data;
+  const obj = {
+    id: f.id, fecha: f.fecha,
+    artista: f.artistas?.nombre || "",
+    artista_id: f.artista_id,
+    ciudad: f.ciudad || "",
+    productora: f.productora_texto || "",
+    venue_id: f.venue_id,
+    promotor: f.promotor_texto || "",
+    promotor_id: f.promotor_id,
+    estado: f.estado || "",
+    oferta: f.oferta_texto || "",
+    sena: f.anticipo_cobrado === true ? "Si" : f.anticipo_cobrado === false ? "No" : "",
+    responsable: f.responsable || "",
+    gastosViaje: f.gastos_viaje || "",
+    logistica: f.logistica || "",
+    comentarios: f.comentarios || "",
+    checklistPre: {}, checklistPost: {}, gastos: 0
+  };
+  (checklistRes.data || []).forEach(ci => {
+    const bucket = ci.fase === "pre" ? obj.checklistPre : obj.checklistPost;
+    if (ci.categoria === "check") bucket[ci.item_key] = !!ci.completado;
+    else bucket[ci.item_key] = ci.info || "";
+  });
+  const idx = state.calendario.findIndex(x => x.id === fechaId);
+  if (idx >= 0) state.calendario[idx] = obj;
+  else state.calendario.push(obj);
 }
 
 /* ============================================================
@@ -2299,28 +2511,45 @@ function checklistItem(e, item, phase) {
   `;
 }
 
-function toggleCheck(id, list, key, val) {
-  const e = state.calendario.find(x=>x.id===id);
+async function toggleCheck(id, list, key, val) {
+  const e = state.calendario.find(x => x.id === id);
+  if (!e) return;
   e[list] = e[list] || {};
   e[list][key] = val;
-  saveState();
-  // re-render dentro del modal sin cerrarlo
+  // Persistir al DB: update por (fecha_id, fase, item_key)
+  const fase = list === "checklistPost" ? "post" : "pre";
+  const { error } = await sb.from("checklist_items")
+    .update({ completado: val })
+    .eq("fecha_id", id).eq("fase", fase).eq("item_key", key);
+  if (error) { toast("Error guardando: " + error.message); return; }
+  // Re-render dentro del modal sin cerrarlo
   document.getElementById("eventModalContent").innerHTML = renderEventDetail(e);
-  // mantener fase actual
-  const phase = list === "checklistPost" ? "post" : "pre";
-  switchPhase(id, phase);
+  switchPhase(id, fase);
 }
 
+// Debounce para no escribir DB en cada keystroke
+const _infoTimers = new Map();
 function updateInfo(id, list, key, val) {
-  const e = state.calendario.find(x=>x.id===id);
+  const e = state.calendario.find(x => x.id === id);
+  if (!e) return;
   e[list] = e[list] || {};
   e[list][key] = val;
-  saveState();
+  const fase = list === "checklistPost" ? "post" : "pre";
+  const tkey = `${id}:${fase}:${key}`;
+  if (_infoTimers.has(tkey)) clearTimeout(_infoTimers.get(tkey));
+  _infoTimers.set(tkey, setTimeout(async () => {
+    const { error } = await sb.from("checklist_items")
+      .update({ info: val, completado: val && val.length > 0 })
+      .eq("fecha_id", id).eq("fase", fase).eq("item_key", key);
+    if (error) console.error("[gv] updateInfo:", error.message);
+    _infoTimers.delete(tkey);
+  }, 700));
 }
 
-function deleteEvent(id) {
+async function deleteEvent(id) {
+  const { error } = await sb.from("fechas").delete().eq("id", id);
+  if (error) { toast("Error: " + error.message); return; }
   state.calendario = state.calendario.filter(x => x.id !== id);
-  saveState();
   closeEvent();
   toast("Fecha eliminada");
   render();
@@ -2427,6 +2656,19 @@ async function bootApp(session, profile) {
     return;
   }
   applyRoleToNav(profile);
+  // Cargar datos desde Supabase antes de renderizar
+  try {
+    showBoot();
+    await loadStateFromDB();
+  } catch (e) {
+    console.error("[gv] error cargando datos:", e);
+    document.getElementById("loginError").textContent =
+      "Error cargando datos desde Supabase: " + (e.message || "desconocido");
+    document.getElementById("loginError").classList.remove("hidden");
+    await gvAuth.signOut();
+    showLogin();
+    return;
+  }
   showApp();
   safeNavigateForRole();
 }
