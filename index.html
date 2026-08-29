@@ -1,1 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SISTEMA OS — Dashboard Personal (Supabase)</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #16161f;
+    --border: rgba(255,255,255,0.06);
+    --border-bright: rgba(255,255,255,0.12);
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent: #c8f542;
+    --accent2: #7b5cfa;
+    --accent3: #fa5c8a;
+    --accent4: #5cccfa;
+    --accent5: #fa9c5c;
+    --red: #ff4d6d;
+    --green: #39d98a;
+    --mono: 'Space Mono', monospace;
+    --display: 'Syne', sans-serif;
+    --body: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .logo-text {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .nav-section { padding: 0 12px; margin-bottom: 24px; }
+  .nav-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: var(--muted);
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    background: rgba(200, 245, 66, 0.08);
+    color: var(--accent);
+    border-color: rgba(200, 245, 66, 0.15);
+  }
+
+  .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .main::-webkit-scrollbar { width: 4px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+  }
+
+  .btn {
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: var(--body);
+  }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #0a0a0f;
+    font-weight: 700;
+  }
+
+  .btn-accent:hover { background: #d4f957; }
+
+  .content { padding: 24px 28px; flex: 1; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .error-box {
+    background: rgba(255, 77, 109, 0.1);
+    border: 1px solid rgba(255, 77, 109, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    color: var(--red);
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: block;
+    font-weight: 500;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: var(--body);
+    font-size: 13px;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .project-item, .task-item, .contact-item {
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .project-item:hover, .task-item:hover, .contact-item:hover {
+    border-color: var(--accent);
+  }
+
+  .item-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .item-meta {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 999;
+  }
+
+  .modal-overlay.open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .modal-title {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .modal-actions .btn {
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-text">SISTEMA OS</div>
+      <div class="logo-sub">v2.0 · SUPABASE</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Navegación</div>
+      <div class="nav-item active" onclick="setPanel('home')">📊 Dashboard</div>
+      <div class="nav-item" onclick="setPanel('inbox')">📥 Inbox</div>
+      <div class="nav-item" onclick="setPanel('tasks')">✓ Tareas</div>
+      <div class="nav-item" onclick="setPanel('projects')">🚀 Proyectos</div>
+      <div class="nav-item" onclick="setPanel('shows')">🎤 Shows</div>
+      <div class="nav-item" onclick="setPanel('contacts')">👥 Contactos</div>
+      <div class="nav-item" onclick="setPanel('orgs')">🏢 Organizaciones</div>
+      <div class="nav-item" onclick="setPanel('artists')">🎵 Artistas</div>
+      <div class="nav-item" onclick="setPanel('facultad')">📚 Facultad</div>
+      <div class="nav-item" onclick="setPanel('finance')">💰 Finanzas</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Más</div>
+      <div class="nav-item" onclick="setPanel('goals')">🎯 Objetivos</div>
+      <div class="nav-item" onclick="setPanel('notes')">📝 Notas</div>
+      <div class="nav-item" onclick="setPanel('settings')">⚙️ Configuración</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+      </div>
+      <div style="margin-left: auto; display: flex; gap: 8px;">
+        <button class="btn btn-accent" onclick="openModal('project')">+ Nuevo Proyecto</button>
+        <button class="btn btn-accent" onclick="openModal('task')">+ Tarea</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- PANEL: HOME -->
+      <div class="panel active" id="panel-home">
+        <div class="card">
+          <h2>Bienvenido a SISTEMA OS</h2>
+          <p style="color: var(--muted); margin-top: 8px;">
+            Este es tu sistema operativo personal. Ahora corre sobre <strong>Supabase</strong>.
+          </p>
+          <div id="loadingMessage" style="margin-top: 16px; display: flex; align-items: center; gap: 8px; color: var(--accent);">
+            <div class="loading-spinner"></div>
+            <span>Cargando datos...</span>
+          </div>
+          <div id="dashboardStats" style="display: none; margin-top: 24px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+              <div class="card" style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--accent);" id="stat-projects">0</div>
+                <div style="font-size: 12px; color: var(--muted);">Proyectos</div>
+              </div>
+              <div class="card" style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--accent2);" id="stat-tasks">0</div>
+                <div style="font-size: 12px; color: var(--muted);">Tareas</div>
+              </div>
+              <div class="card" style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--accent3);" id="stat-shows">0</div>
+                <div style="font-size: 12px; color: var(--muted);">Shows</div>
+              </div>
+              <div class="card" style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--accent4);" id="stat-contacts">0</div>
+                <div style="font-size: 12px; color: var(--muted);">Contactos</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: PROJECTS -->
+      <div class="panel" id="panel-projects">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Proyectos</h2>
+          <div id="projectsList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando proyectos...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: TASKS -->
+      <div class="panel" id="panel-tasks">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Tareas</h2>
+          <div id="tasksList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando tareas...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: SHOWS -->
+      <div class="panel" id="panel-shows">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Shows Confirmados</h2>
+          <div id="showsList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando shows...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: CONTACTS -->
+      <div class="panel" id="panel-contacts">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Contactos</h2>
+          <div id="contactsList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando contactos...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: ORGANIZATIONS -->
+      <div class="panel" id="panel-orgs">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Organizaciones</h2>
+          <div id="orgsList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando organizaciones...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: ARTISTS -->
+      <div class="panel" id="panel-artists">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Artistas</h2>
+          <div id="artistsList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando artistas...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: FACULTAD -->
+      <div class="panel" id="panel-facultad">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Facultad</h2>
+          <div id="facultadList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando materias...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: INBOX -->
+      <div class="panel" id="panel-inbox">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Inbox</h2>
+          <div id="inboxList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Inbox vacío</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: FINANCE -->
+      <div class="panel" id="panel-finance">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Finanzas</h2>
+          <div id="financeView">
+            <div class="empty-state">Módulo de finanzas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: GOALS -->
+      <div class="panel" id="panel-goals">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Objetivos</h2>
+          <div id="goalsList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando objetivos...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: NOTES -->
+      <div class="panel" id="panel-notes">
+        <div class="card">
+          <h2 style="margin-bottom: 16px;">Notas</h2>
+          <div id="notesList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="empty-state">Cargando notas...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: SETTINGS -->
+      <div class="panel" id="panel-settings">
+        <div class="card">
+          <h2>Configuración</h2>
+          <div style="margin-top: 16px;">
+            <p style="color: var(--muted); font-size: 12px; margin-bottom: 12px;">
+              Base de datos: <strong>Supabase PostgreSQL</strong>
+            </p>
+            <p style="color: var(--muted); font-size: 12px; margin-bottom: 12px;">
+              Sincronización: <strong>Automática</strong>
+            </p>
+            <button class="btn btn-accent" onclick="refreshAllData()">🔄 Actualizar datos</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-content">
+    <div class="modal-title" id="modalTitle">Nuevo Proyecto</div>
+    <div id="modalForm"></div>
+    <div class="modal-actions">
+      <button class="btn btn-accent" onclick="handleModalSave()">Guardar</button>
+      <button class="btn" style="background: var(--surface2); border: 1px solid var(--border);" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================
+  // CONFIGURACIÓN SUPABASE
+  // ============================================
+
+  const SUPABASE_URL = 'https://ahvoaoquokfrencgoekf.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_NSO3rvBBmoSYrGq4A3v5uQ_N79u7pvJ';
+
+  const { createClient } = supabase;
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let DB = {
+    projects: [],
+    tasks: [],
+    contacts: [],
+    organizations: [],
+    artists: [],
+    personalEvents: [],
+    documents: [],
+    notes: [],
+    inbox: [],
+    faculty: [],
+    goals: [],
+    movimientos: []
+  };
+
+  // ============================================
+  // INICIALIZACIÓN
+  // ============================================
+
+  async function initializeApp() {
+    console.log('Inicializando SISTEMA OS con Supabase...');
+    await loadAllData();
+    renderHome();
+  }
+
+  async function loadAllData() {
+    try {
+      const [
+        projectsRes,
+        tasksRes,
+        contactsRes,
+        orgsRes,
+        artistsRes,
+        facultyRes,
+        goalsRes,
+        notesRes,
+        inboxRes
+      ] = await Promise.all([
+        supabaseClient.from('projects').select('*'),
+        supabaseClient.from('tasks').select('*'),
+        supabaseClient.from('contacts').select('*'),
+        supabaseClient.from('organizations').select('*'),
+        supabaseClient.from('artists').select('*'),
+        supabaseClient.from('faculty').select('*'),
+        supabaseClient.from('goals').select('*'),
+        supabaseClient.from('notes').select('*'),
+        supabaseClient.from('inbox').select('*')
+      ]);
+
+      DB.projects = projectsRes.data || [];
+      DB.tasks = tasksRes.data || [];
+      DB.contacts = contactsRes.data || [];
+      DB.organizations = orgsRes.data || [];
+      DB.artists = artistsRes.data || [];
+      DB.faculty = facultyRes.data || [];
+      DB.goals = goalsRes.data || [];
+      DB.notes = notesRes.data || [];
+      DB.inbox = inboxRes.data || [];
+
+      console.log('✅ Datos cargados:', DB);
+      document.getElementById('loadingMessage').style.display = 'none';
+      document.getElementById('dashboardStats').style.display = 'block';
+    } catch (error) {
+      console.error('❌ Error cargando datos:', error);
+      document.getElementById('loadingMessage').innerHTML = `<div class="error-box">Error cargando datos: ${error.message}</div>`;
+    }
+  }
+
+  async function refreshAllData() {
+    await loadAllData();
+    renderHome();
+    alert('Datos actualizados');
+  }
+
+  // ============================================
+  // NAVEGACIÓN Y RENDERIZADO
+  // ============================================
+
+  function setPanel(panelId) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    document.getElementById('panel-' + panelId)?.classList.add('active');
+    event.target.classList.add('active');
+
+    const titles = {
+      home: 'Dashboard',
+      inbox: 'Inbox',
+      tasks: 'Tareas',
+      projects: 'Proyectos',
+      shows: 'Shows Confirmados',
+      contacts: 'Contactos',
+      orgs: 'Organizaciones',
+      artists: 'Artistas',
+      facultad: 'Facultad',
+      finance: 'Finanzas',
+      goals: 'Objetivos',
+      notes: 'Notas',
+      settings: 'Configuración'
+    };
+
+    document.getElementById('pageTitle').textContent = titles[panelId] || panelId;
+
+    if (panelId === 'home') renderHome();
+    if (panelId === 'projects') renderProjects();
+    if (panelId === 'tasks') renderTasks();
+    if (panelId === 'shows') renderShows();
+    if (panelId === 'contacts') renderContacts();
+    if (panelId === 'orgs') renderOrganizations();
+    if (panelId === 'artists') renderArtists();
+    if (panelId === 'facultad') renderFaculty();
+    if (panelId === 'inbox') renderInbox();
+    if (panelId === 'goals') renderGoals();
+    if (panelId === 'notes') renderNotes();
+  }
+
+  function renderHome() {
+    document.getElementById('stat-projects').textContent = DB.projects.length;
+    document.getElementById('stat-tasks').textContent = DB.tasks.filter(t => !t.done).length;
+    document.getElementById('stat-shows').textContent = DB.projects.filter(p => p.type === 'show' && p.booking_stage === 'confirmado').length;
+    document.getElementById('stat-contacts').textContent = DB.contacts.length;
+  }
+
+  function renderProjects() {
+    const list = document.getElementById('projectsList');
+    if (!DB.projects.length) {
+      list.innerHTML = '<div class="empty-state">No hay proyectos. Crea uno nuevo.</div>';
+      return;
+    }
+    list.innerHTML = DB.projects.map(p => `
+      <div class="project-item">
+        <div class="item-title">${p.name}</div>
+        <div class="item-meta">
+          ${p.type} • ${p.status} • Progreso: ${p.progress}%
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderTasks() {
+    const list = document.getElementById('tasksList');
+    const tasks = DB.tasks.filter(t => !t.done);
+    if (!tasks.length) {
+      list.innerHTML = '<div class="empty-state">No hay tareas pendientes. ¡Excelente!</div>';
+      return;
+    }
+    list.innerHTML = tasks.map(t => `
+      <div class="task-item">
+        <div class="item-title">✓ ${t.title}</div>
+        <div class="item-meta">
+          Vencimiento: ${t.due_date || '—'} • Prioridad: ${t.priority}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderShows() {
+    const list = document.getElementById('showsList');
+    const shows = DB.projects.filter(p => p.type === 'show' && p.booking_stage === 'confirmado');
+    if (!shows.length) {
+      list.innerHTML = '<div class="empty-state">No hay shows confirmados.</div>';
+      return;
+    }
+    list.innerHTML = shows.map(s => `
+      <div class="project-item">
+        <div class="item-title">🎤 ${s.name}</div>
+        <div class="item-meta">
+          ${s.deadline || '—'} • Deadline: ${s.deadline}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderContacts() {
+    const list = document.getElementById('contactsList');
+    if (!DB.contacts.length) {
+      list.innerHTML = '<div class="empty-state">No hay contactos.</div>';
+      return;
+    }
+    list.innerHTML = DB.contacts.map(c => `
+      <div class="contact-item">
+        <div class="item-title">${c.name}</div>
+        <div class="item-meta">
+          ${c.company || '—'} • ${c.role || '—'} • ${c.email || c.phone || '—'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderOrganizations() {
+    const list = document.getElementById('orgsList');
+    if (!DB.organizations.length) {
+      list.innerHTML = '<div class="empty-state">No hay organizaciones.</div>';
+      return;
+    }
+    list.innerHTML = DB.organizations.map(o => `
+      <div class="contact-item">
+        <div class="item-title">${o.name}</div>
+        <div class="item-meta">
+          ${o.type} • ${o.city || '—'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderArtists() {
+    const list = document.getElementById('artistsList');
+    if (!DB.artists.length) {
+      list.innerHTML = '<div class="empty-state">No hay artistas.</div>';
+      return;
+    }
+    list.innerHTML = DB.artists.map(a => `
+      <div class="contact-item">
+        <div class="item-title">🎵 ${a.name}</div>
+        <div class="item-meta">
+          ${a.genre || '—'} • ${a.country || '—'} • Fee: ${a.fee || '—'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderFaculty() {
+    const list = document.getElementById('facultadList');
+    if (!DB.faculty.length) {
+      list.innerHTML = '<div class="empty-state">No hay materias cargadas.</div>';
+      return;
+    }
+    list.innerHTML = DB.faculty.map(f => `
+      <div class="contact-item">
+        <div class="item-title">📚 ${f.subject}</div>
+        <div class="item-meta">
+          Prof: ${f.professor || '—'} • Entrega: ${f.deadline || '—'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderInbox() {
+    const list = document.getElementById('inboxList');
+    const pending = DB.inbox.filter(i => !i.processed);
+    if (!pending.length) {
+      list.innerHTML = '<div class="empty-state">Inbox vacío. Todo procesado.</div>';
+      return;
+    }
+    list.innerHTML = pending.map(i => `
+      <div class="task-item">
+        <div class="item-title">${i.text}</div>
+        <div class="item-meta">${i.date}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderGoals() {
+    const list = document.getElementById('goalsList');
+    if (!DB.goals.length) {
+      list.innerHTML = '<div class="empty-state">No hay objetivos.</div>';
+      return;
+    }
+    list.innerHTML = DB.goals.map(g => `
+      <div class="contact-item">
+        <div class="item-title">🎯 ${g.name}</div>
+        <div class="item-meta">
+          Progreso: ${g.pct}%
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderNotes() {
+    const list = document.getElementById('notesList');
+    if (!DB.notes.length) {
+      list.innerHTML = '<div class="empty-state">No hay notas.</div>';
+      return;
+    }
+    list.innerHTML = DB.notes.map(n => `
+      <div class="contact-item">
+        <div class="item-title">${n.title}</div>
+        <div class="item-meta">
+          ${n.date} • Tags: ${n.tags?.join(', ') || '—'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ============================================
+  // MODAL
+  // ============================================
+
+  let currentModalType = '';
+
+  function openModal(type) {
+    currentModalType = type;
+    const modal = document.getElementById('modalOverlay');
+    const title = document.getElementById('modalTitle');
+    const form = document.getElementById('modalForm');
+
+    if (type === 'project') {
+      title.textContent = 'Nuevo Proyecto';
+      form.innerHTML = `
+        <div class="form-group">
+          <label class="form-label">Nombre</label>
+          <input class="form-input" id="f_name" placeholder="Ej: Show Club XYZ">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-input" id="f_type">
+            <option value="show">Show</option>
+            <option value="produccion">Producción</option>
+            <option value="agencia">Agencia</option>
+            <option value="facultad">Facultad</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prioridad</label>
+          <select class="form-input" id="f_priority">
+            <option value="alta">Alta</option>
+            <option value="media" selected>Media</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Deadline</label>
+          <input class="form-input" type="date" id="f_deadline">
+        </div>
+      `;
+    } else if (type === 'task') {
+      title.textContent = 'Nueva Tarea';
+      form.innerHTML = `
+        <div class="form-group">
+          <label class="form-label">Título</label>
+          <input class="form-input" id="f_title" placeholder="Ej: Enviar rider técnico">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prioridad</label>
+          <select class="form-input" id="f_priority">
+            <option value="alta">Alta</option>
+            <option value="media" selected>Media</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vencimiento</label>
+          <input class="form-input" type="date" id="f_duedate">
+        </div>
+      `;
+    }
+
+    modal.classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  async function handleModalSave() {
+    try {
+      if (currentModalType === 'project') {
+        const name = document.getElementById('f_name').value;
+        if (!name) { alert('Completá el nombre'); return; }
+
+        const newProject = {
+          name,
+          type: document.getElementById('f_type').value,
+          priority: document.getElementById('f_priority').value,
+          deadline: document.getElementById('f_deadline').value || null,
+          status: 'planificacion',
+          progress: 0,
+          responsible: 'Vos',
+          booking_stage: ''
+        };
+
+        const { data, error } = await supabaseClient
+          .from('projects')
+          .insert([newProject])
+          .select();
+
+        if (error) throw error;
+        DB.projects.push(data[0]);
+        renderProjects();
+        alert('Proyecto creado');
+        closeModal();
+      } else if (currentModalType === 'task') {
+        const title = document.getElementById('f_title').value;
+        if (!title) { alert('Completá el título'); return; }
+
+        const newTask = {
+          title,
+          priority: document.getElementById('f_priority').value,
+          due_date: document.getElementById('f_duedate').value || null,
+          done: false
+        };
+
+        const { data, error } = await supabaseClient
+          .from('tasks')
+          .insert([newTask])
+          .select();
+
+        if (error) throw error;
+        DB.tasks.push(data[0]);
+        renderTasks();
+        alert('Tarea creada');
+        closeModal();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error: ' + error.message);
+    }
+  }
+
+  // ============================================
+  // INICIAR APP
+  // ============================================
+
+  window.addEventListener('DOMContentLoaded', initializeApp);
+</script>
+</body>
+</html>
 
