@@ -616,6 +616,18 @@
             <button class="btn btn-accent" onclick="refreshAllData()">🔄 Actualizar datos</button>
           </div>
         </div>
+        <div class="card" style="margin-top: 16px;">
+          <h2 style="margin-bottom: 8px;">Importar tareas desde Markdown</h2>
+          <p style="color: var(--muted); font-size: 12px; margin-bottom: 12px; line-height: 1.6;">
+            Subí un .md con formato "## Área" seguido de líneas "- [ ] tarea" (como <code>tareas_pendientes.md</code>).
+            Cada área se vincula a un Proyecto en Supabase (se crea si no existe) y cada línea se agrega como Tarea de ese proyecto.
+            Se puede correr varias veces: las tareas ya importadas no se duplican.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-accent" onclick="document.getElementById('importTareasFile').click()">Importar tareas (Markdown)</button>
+            <input type="file" id="importTareasFile" accept=".md,.markdown,.txt,text/markdown" style="display:none" onchange="importTareasMarkdown(event)">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -804,6 +816,117 @@
   }
 
   // ============================================
+  // IMPORTADOR DE TAREAS DESDE MARKDOWN
+  // Vincula un archivo .md con formato:
+  //   ## Área / Proyecto
+  //   - [ ] Tarea pendiente
+  //   - [x] Tarea ya hecha
+  // con las tablas de Supabase: por cada área se busca o crea
+  // una fila en `projects`, y cada línea se inserta en `tasks`
+  // con project_id apuntando a ese proyecto. Idempotente: si se
+  // reimporta el mismo archivo, no duplica tareas ya cargadas
+  // (se matchea por project_id + título contra lo que ya está
+  // en memoria en DB.tasks).
+  // ============================================
+
+  const AREA_PROJECT_TYPE = {
+    'agencia': 'agencia',
+    'facultad': 'facultad',
+    '4get producciones': 'produccion',
+    'marca personal': 'personal',
+    'seminario logística': 'otro',
+    'seminario logistica': 'otro',
+  };
+
+  function guessProjectType(areaName) {
+    const key = areaName.trim().toLowerCase();
+    if (AREA_PROJECT_TYPE[key]) return AREA_PROJECT_TYPE[key];
+    if (key.includes('facultad') || key.includes('materia') || key.includes('seminario')) return 'facultad';
+    if (key.includes('agencia') || key.includes('management')) return 'agencia';
+    if (key.includes('producci')) return 'produccion';
+    if (key.includes('marca') || key.includes('personal')) return 'personal';
+    return 'otro';
+  }
+
+  function parseTareasMarkdown(text) {
+    const lines = text.split(/\r?\n/);
+    let currentArea = 'General';
+    const items = [];
+    lines.forEach(line => {
+      const areaMatch = line.match(/^##\s+(.+?)\s*$/);
+      if (areaMatch) { currentArea = areaMatch[1].trim(); return; }
+      const taskMatch = line.match(/^\s*-\s*\[( |x|X)\]\s*(.+?)\s*$/);
+      if (taskMatch) {
+        items.push({ area: currentArea, title: taskMatch[2].trim(), done: taskMatch[1].toLowerCase() === 'x' });
+      }
+    });
+    return items;
+  }
+
+  async function findOrCreateProjectForArea(areaName) {
+    let proj = DB.projects.find(p => p.name.trim().toLowerCase() === areaName.trim().toLowerCase());
+    if (proj) return proj;
+
+    const newProject = {
+      name: areaName,
+      type: guessProjectType(areaName),
+      status: 'en_desarrollo',
+      priority: 'media',
+      responsible: 'Vos',
+      objective: 'Agrupa las tareas importadas desde "' + areaName + '".',
+      progress: 0,
+    };
+    const { data, error } = await supabaseClient.from('projects').insert([newProject]).select();
+    if (error) throw error;
+    proj = data[0];
+    DB.projects.push(proj);
+    return proj;
+  }
+
+  async function importTareasMarkdown(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const items = parseTareasMarkdown(String(reader.result));
+        if (!items.length) {
+          alert('No se encontraron tareas. El archivo debe tener secciones "## Área" con líneas "- [ ] tarea" debajo.');
+          return;
+        }
+
+        let created = 0, skipped = 0;
+        const areas = [...new Set(items.map(i => i.area))];
+        for (const areaName of areas) {
+          const proj = await findOrCreateProjectForArea(areaName);
+          const areaItems = items.filter(i => i.area === areaName);
+
+          const toInsert = [];
+          areaItems.forEach(item => {
+            const exists = DB.tasks.some(t => t.project_id === proj.id && t.title.trim().toLowerCase() === item.title.toLowerCase());
+            if (exists) { skipped++; return; }
+            toInsert.push({ title: item.title, project_id: proj.id, priority: 'media', due_date: null, done: item.done });
+          });
+
+          if (toInsert.length) {
+            const { data, error } = await supabaseClient.from('tasks').insert(toInsert).select();
+            if (error) throw error;
+            DB.tasks.push(...data);
+            created += data.length;
+          }
+        }
+
+        renderProjects(); renderTasks(); renderHome();
+        alert(`Importación completa: ${created} tareas nuevas vinculadas a sus proyectos` + (skipped ? `, ${skipped} ya existían y se omitieron.` : '.'));
+        e.target.value = '';
+      } catch (error) {
+        console.error('Error importando tareas:', error);
+        alert('Error importando tareas: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // ============================================
   // NAVEGACIÓN Y RENDERIZADO
   // ============================================
 
@@ -875,14 +998,17 @@
       list.innerHTML = '<div class="empty-state">No hay tareas pendientes. ¡Excelente!</div>';
       return;
     }
-    list.innerHTML = tasks.map(t => `
+    list.innerHTML = tasks.map(t => {
+      const proj = DB.projects.find(p => p.id === t.project_id);
+      return `
       <div class="task-item">
         <div class="item-title">✓ ${t.title}</div>
         <div class="item-meta">
-          Vencimiento: ${t.due_date || '—'} • Prioridad: ${t.priority}
+          ${proj ? proj.name + ' • ' : ''}Vencimiento: ${t.due_date || '—'} • Prioridad: ${t.priority}
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function renderShows() {
@@ -1057,10 +1183,18 @@
       `;
     } else if (type === 'task') {
       title.textContent = 'Nueva Tarea';
+      const projOptions = DB.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
       form.innerHTML = `
         <div class="form-group">
           <label class="form-label">Título</label>
           <input class="form-input" id="f_title" placeholder="Ej: Enviar rider técnico">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Proyecto</label>
+          <select class="form-input" id="f_project">
+            <option value="">— Sin proyecto —</option>
+            ${projOptions}
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Prioridad</label>
@@ -1121,6 +1255,7 @@
 
         const newTask = {
           title,
+          project_id: document.getElementById('f_project').value || null,
           priority: document.getElementById('f_priority').value,
           due_date: document.getElementById('f_duedate').value || null,
           done: false
