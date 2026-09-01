@@ -307,10 +307,113 @@
   .modal-actions .btn {
     flex: 1;
   }
+
+  /* AUTH SCREEN */
+  .auth-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .auth-screen.active {
+    display: flex;
+  }
+
+  .auth-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .auth-title {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 24px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .auth-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .auth-button {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 12px;
+    transition: background 0.15s;
+  }
+
+  .auth-button:hover {
+    background: #d4f957;
+  }
+
+  .auth-toggle {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+
+  .auth-toggle a {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .logout-btn {
+    background: var(--red) !important;
+  }
+
+  .logout-btn:hover {
+    background: #ff6b82 !important;
+  }
 </style>
 </head>
 <body>
-<div class="app">
+<!-- AUTH SCREEN -->
+<div class="auth-screen active" id="authScreen">
+  <div class="auth-container">
+    <div class="auth-title">SISTEMA OS</div>
+    <div class="auth-subtitle">Acceso seguro con Supabase</div>
+
+    <div id="authForm">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="authEmail" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input class="form-input" type="password" id="authPassword" placeholder="••••••••">
+      </div>
+      <button class="auth-button" onclick="handleAuthAction()">Acceder</button>
+      <div id="authError" style="display: none; margin-top: 12px; padding: 12px; background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3); border-radius: 8px; color: var(--red); font-size: 12px;"></div>
+      <div class="auth-toggle">
+        ¿Primera vez? <a onclick="toggleAuthMode()">Crear cuenta</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp" style="display: none;">
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="logo">
@@ -346,8 +449,10 @@
       <div>
         <div class="page-title" id="pageTitle">Dashboard</div>
       </div>
-      <div style="margin-left: auto; display: flex; gap: 8px;">
-        <button class="btn btn-accent" onclick="openModal('project')">+ Nuevo Proyecto</button>
+      <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+        <span style="font-size: 12px; color: var(--muted);" id="userEmail"></span>
+        <button class="btn logout-btn" onclick="handleLogout()">Salir</button>
+        <button class="btn btn-accent" onclick="openModal('project')">+ Proyecto</button>
         <button class="btn btn-accent" onclick="openModal('task')">+ Tarea</button>
       </div>
     </div>
@@ -553,6 +658,91 @@
     goals: [],
     movimientos: []
   };
+
+  // ============================================
+  // AUTENTICACIÓN
+  // ============================================
+
+  let currentUser = null;
+  let isSignUpMode = false;
+
+  async function handleAuthAction() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errorDiv = document.getElementById('authError');
+
+    if (!email || !password) {
+      showAuthError('Completa todos los campos');
+      return;
+    }
+
+    try {
+      if (isSignUpMode) {
+        // Sign Up
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password
+        });
+        if (error) throw error;
+        showAuthError('✅ Cuenta creada. Ahora inicia sesión.');
+        setTimeout(() => toggleAuthMode(), 2000);
+      } else {
+        // Sign In
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (error) throw error;
+        currentUser = data.user;
+        loginSuccess();
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      showAuthError(error.message || 'Error en autenticación');
+    }
+  }
+
+  function showAuthError(msg) {
+    const errorDiv = document.getElementById('authError');
+    errorDiv.textContent = msg;
+    errorDiv.style.display = 'block';
+  }
+
+  function toggleAuthMode() {
+    isSignUpMode = !isSignUpMode;
+    const button = document.querySelector('.auth-button');
+    const toggle = document.querySelector('.auth-toggle a');
+    const errorDiv = document.getElementById('authError');
+
+    if (isSignUpMode) {
+      button.textContent = 'Crear cuenta';
+      toggle.textContent = '¿Ya tienes cuenta? Inicia sesión';
+    } else {
+      button.textContent = 'Acceder';
+      toggle.textContent = '¿Primera vez? Crear cuenta';
+    }
+
+    errorDiv.style.display = 'none';
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+  }
+
+  function loginSuccess() {
+    document.getElementById('authScreen').classList.remove('active');
+    document.getElementById('mainApp').style.display = 'flex';
+    document.getElementById('userEmail').textContent = currentUser.email;
+    initializeApp();
+  }
+
+  async function handleLogout() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    document.getElementById('authScreen').classList.add('active');
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    isSignUpMode = false;
+  }
 
   // ============================================
   // INICIALIZACIÓN
@@ -957,8 +1147,19 @@
   // INICIAR APP
   // ============================================
 
-  window.addEventListener('DOMContentLoaded', initializeApp);
+  window.addEventListener('DOMContentLoaded', async () => {
+    // Check if user is already logged in
+    const { data: { user }, error } = await supabaseClient.auth.getUser();
+
+    if (user) {
+      currentUser = user;
+      loginSuccess();
+    } else {
+      // Show auth screen
+      document.getElementById('authScreen').classList.add('active');
+      document.getElementById('mainApp').style.display = 'none';
+    }
+  });
 </script>
 </body>
 </html>
-
