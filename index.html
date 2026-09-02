@@ -3143,17 +3143,20 @@
           <div class="section-title"><div class="section-dot" style="background:${statusColor(p.status)}"></div>${projectEmoji(p.type)} ${p.name}</div>
           <button class="btn btn-ghost" onclick="selectedProjectId=null;renderProjects()">Cerrar ✕</button>
         </div>
-        <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">${p.objective || 'Sin objetivo definido'}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-          <span class="proj-task-chip">Tipo: ${PROJECT_TYPES[p.type]||p.type}</span>
-          <span class="proj-task-chip">Estado: ${PROJECT_STATUS[p.status]||p.status}</span>
-          <span class="proj-task-chip">Prioridad: ${p.priority}</span>
-          <span class="proj-task-chip">Deadline: ${fmtDate(p.deadline)}</span>
-          ${org ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('orgs')">${org.name}</span>` : ''}
-          ${artist ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('artists')">★ ${artist.name}</span>` : ''}
-        </div>
         ${renderPhaseChips(p.id)}
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px">
+          <div>
+            <div class="section-title" style="font-size:12px;margin-bottom:8px">Información general</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${p.objective || 'Sin objetivo definido'}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span class="proj-task-chip">Tipo: ${PROJECT_TYPES[p.type]||p.type}</span>
+              <span class="proj-task-chip">Estado: ${PROJECT_STATUS[p.status]||p.status}</span>
+              <span class="proj-task-chip">Prioridad: ${p.priority}</span>
+              <span class="proj-task-chip">Deadline: ${fmtDate(p.deadline)}</span>
+              ${org ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('orgs')">${org.name}</span>` : ''}
+              ${artist ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('artists')">★ ${artist.name}</span>` : ''}
+            </div>
+          </div>
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Tareas (${tasks.length})</div>
             ${tasks.length ? tasks.map(t => { const ph = phaseById(t.phase_id); return `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div><div class="task-text ${t.done?'done':''}">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}${ph ? ' · ' + ph.name : ''}</div></div></div>`; }).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
