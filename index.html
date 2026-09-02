@@ -2319,14 +2319,16 @@
      ========================================================= */
   let DB = {
     projects: [], tasks: [], contacts: [], organizations: [], artists: [],
-    personalEvents: [], documents: [], notes: [], inbox: [], faculty: [], goals: [], movimientos: []
+    personalEvents: [], documents: [], notes: [], inbox: [], faculty: [], goals: [], movimientos: [],
+    areas: [], phases: [], taskDependencies: []
   };
 
   async function loadAllData() {
     try {
       const [
         projectsRes, tasksRes, contactsRes, orgsRes, artistsRes,
-        eventsRes, docsRes, notesRes, inboxRes, facultyRes, goalsRes, movRes
+        eventsRes, docsRes, notesRes, inboxRes, facultyRes, goalsRes, movRes,
+        areasRes, phasesRes, depsRes
       ] = await Promise.all([
         supabaseClient.from('projects').select('*'),
         supabaseClient.from('tasks').select('*'),
@@ -2340,6 +2342,9 @@
         supabaseClient.from('faculty').select('*'),
         supabaseClient.from('goals').select('*'),
         supabaseClient.from('movimientos').select('*').order('created_at', { ascending: false }),
+        supabaseClient.from('areas').select('*').order('sort_order', { ascending: true }),
+        supabaseClient.from('phases').select('*'),
+        supabaseClient.from('task_dependencies').select('*'),
       ]);
       DB.projects = projectsRes.data || [];
       DB.tasks = tasksRes.data || [];
@@ -2353,6 +2358,9 @@
       DB.faculty = facultyRes.data || [];
       DB.goals = goalsRes.data || [];
       DB.movimientos = movRes.data || [];
+      DB.areas = areasRes.data || [];
+      DB.phases = phasesRes.data || [];
+      DB.taskDependencies = depsRes.data || [];
       console.log('✅ Datos cargados desde Supabase:', DB);
     } catch (error) {
       console.error('❌ Error cargando datos:', error);
@@ -2381,12 +2389,42 @@
   function orgById(id) { return DB.organizations.find(o => o.id === id); }
   function artistById(id) { return DB.artists.find(a => a.id === id); }
   function tasksOf(projectId) { return DB.tasks.filter(t => t.project_id === projectId); }
+  function areaById(id) { return DB.areas.find(a => a.id === id); }
+  function phaseById(id) { return DB.phases.find(ph => ph.id === id); }
+  function phasesOf(projectId) { return DB.phases.filter(ph => ph.project_id === projectId).sort((a,b) => a.sequence_index - b.sequence_index); }
+  function areaSortOrder(areaId) { const a = areaById(areaId); return a ? a.sort_order : 99; }
+  const TASK_STATUS_LABELS = { backlog:'Backlog', to_do:'To Do', in_progress:'En progreso', blocked:'Bloqueada', done:'Hecha' };
+  const TIPO_TAREA_LABELS = { trabajo_practico:'Trabajo Práctico', examen:'Examen', preparacion_examen:'Preparación de examen', revision_contenidos:'Revisión de contenidos', sesion_estudio:'Sesión de estudio' };
+  function blockingTaskOf(taskId) {
+    const dep = DB.taskDependencies.find(d => d.task_id === taskId);
+    if (!dep) return null;
+    const blocker = DB.tasks.find(t => t.id === dep.depends_on_id);
+    return (blocker && !blocker.done) ? blocker : null;
+  }
+  const PRIORITY_RANK = { alta: 0, media: 1, baja: 2 };
+  function isUrgent(t) {
+    const d = t.scheduled_date || t.due_date;
+    if (!d) return false;
+    return daysUntil(d) <= 1;
+  }
+  function sortTasksPriority(list) {
+    return [...list].sort((a, b) => {
+      const ua = isUrgent(a) ? 0 : 1, ub = isUrgent(b) ? 0 : 1;
+      if (ua !== ub) return ua - ub;
+      const sa = areaSortOrder(a.area_id || (projectById(a.project_id)||{}).area_id);
+      const sb = areaSortOrder(b.area_id || (projectById(b.project_id)||{}).area_id);
+      if (sa !== sb) return sa - sb;
+      const pa = PRIORITY_RANK[a.priority] ?? 3, pb = PRIORITY_RANK[b.priority] ?? 3;
+      if (pa !== pb) return pa - pb;
+      return (a.due_date||a.scheduled_date||'').localeCompare(b.due_date||b.scheduled_date||'');
+    });
+  }
 
   // ---- Todos los eventos agregados (Calendar) ----
   function getAllEvents() {
     const evs = [];
-    DB.tasks.filter(t => t.due_date && !t.done).forEach(t => {
-      evs.push({ date: t.due_date, title: t.title, type: 'task', color: 'var(--accent2)', projectId: t.project_id });
+    DB.tasks.filter(t => (t.scheduled_date || t.due_date) && !t.done).forEach(t => {
+      evs.push({ date: t.scheduled_date || t.due_date, title: t.title, type: 'task', color: 'var(--accent2)', projectId: t.project_id });
     });
     DB.projects.filter(p => p.type === 'show' && p.deadline).forEach(p => {
       evs.push({ date: p.deadline, title: p.name, type: 'show', color: 'var(--accent3)', projectId: p.id });
@@ -2625,14 +2663,30 @@
       html = `
         <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="f_title" placeholder="Ej: Enviar rider técnico..."></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Proyecto</label><select class="form-input" id="f_project"><option value="">— Sin proyecto —</option>${projOptions}</select></div>
+          <div class="form-group"><label class="form-label">Proyecto</label><select class="form-input" id="f_project" onchange="onTaskProjectChange()"><option value="">— Sin proyecto —</option>${projOptions}</select></div>
+          <div class="form-group"><label class="form-label">Etapa</label><select class="form-input" id="f_phase"><option value="">— Sin etapa —</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Área</label><select class="form-input" id="f_area"><option value="">— Heredar del proyecto —</option>${DB.areas.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}</select></div>
           <div class="form-group"><label class="form-label">Contacto</label><select class="form-input" id="f_contact"><option value="">— Sin contacto —</option>${contactOptions}</select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="f_date" value="${todayISO()}"></div>
+          <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="f_status"><option value="backlog">Backlog</option><option value="to_do" selected>To Do</option><option value="in_progress">In Progress</option><option value="blocked">Blocked</option><option value="done">Done</option></select></div>
           <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="f_priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
         </div>
-        <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_createEvent" checked> Crear evento en Calendar</label></div>`;
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Fecha límite</label><input class="form-input" type="date" id="f_date" value="${todayISO()}"></div>
+          <div class="form-group"><label class="form-label">Fecha programada</label><input class="form-input" type="date" id="f_scheduled"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Estimación (min)</label><input class="form-input" type="number" id="f_estimate" placeholder="Ej: 60"></div>
+          <div class="form-group"><label class="form-label">Tipo (Facultad)</label><select class="form-input" id="f_tipotarea"><option value="">—</option><option value="trabajo_practico">Trabajo Práctico</option><option value="examen">Examen</option><option value="preparacion_examen">Preparación de examen</option><option value="revision_contenidos">Revisión de contenidos</option><option value="sesion_estudio">Sesión de estudio</option></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">Depende de</label><select class="form-input" id="f_dependson"><option value="">— Ninguna —</option>${DB.tasks.filter(t=>!t.done).map(t => `<option value="${t.id}">${t.title}</option>`).join('')}</select></div>
+        <div class="form-group" style="display:flex;gap:18px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_createEvent" checked> Crear evento en Calendar</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_recurring"> Tarea recurrente (semanal)</label>
+        </div>`;
     } else if (type === 'Proyecto' || type === 'Show / Evento') {
       const isShow = type === 'Show / Evento';
       html = `
@@ -2644,6 +2698,10 @@
             </select>
           </div>
           <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="f_priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Área</label><select class="form-input" id="f_area">${DB.areas.map(a => `<option value="${a.id}" ${isShow && a.name==='Producción' ? 'selected' : ''}>${a.name}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Tipo personal</label><select class="form-input" id="f_tipopersonal"><option value="">—</option><option value="investigacion">Investigación</option><option value="ingreso">Ingreso</option><option value="ambos">Ambos</option></select></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" type="date" id="f_start" value="${todayISO()}"></div>
@@ -2727,6 +2785,14 @@
 
   function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
+  function onTaskProjectChange() {
+    const projId = val('f_project');
+    const sel = document.getElementById('f_phase');
+    if (!sel) return;
+    const phases = projId ? phasesOf(projId) : [];
+    sel.innerHTML = '<option value="">— Sin etapa —</option>' + phases.map(ph => `<option value="${ph.id}">${ph.name} (${ph.status})</option>`).join('');
+  }
+
   async function saveNewItem() {
     const type = document.getElementById('newType').value;
     const title = val('f_title');
@@ -2734,13 +2800,29 @@
 
     try {
       if (type === 'Tarea') {
+        const projId = val('f_project') || null;
+        const proj = projId ? projectById(projId) : null;
+        const areaId = val('f_area') || (proj ? proj.area_id : null) || null;
+        const statusVal = val('f_status') || 'to_do';
         const { data, error } = await supabaseClient.from('tasks').insert([{
-          title, project_id: val('f_project') || null, contact_id: val('f_contact') || null,
-          due_date: val('f_date') || null, priority: val('f_priority').toLowerCase(), done: false,
+          title, project_id: projId, contact_id: val('f_contact') || null,
+          phase_id: val('f_phase') || null, area_id: areaId,
+          due_date: val('f_date') || null, scheduled_date: val('f_scheduled') || null,
+          priority: val('f_priority').toLowerCase(), status: statusVal, done: statusVal === 'done',
+          time_estimate: val('f_estimate') ? parseInt(val('f_estimate')) : null,
+          is_recurring: document.getElementById('f_recurring').checked,
+          tipo_tarea: val('f_tipotarea') || null,
           create_event: document.getElementById('f_createEvent').checked
         }]).select();
         if (error) throw error;
         DB.tasks.push(data[0]);
+        const dependsOnId = val('f_dependson');
+        if (dependsOnId) {
+          const { data: depData, error: depErr } = await supabaseClient.from('task_dependencies').insert([{
+            task_id: data[0].id, depends_on_id: dependsOnId
+          }]).select();
+          if (!depErr && depData) DB.taskDependencies.push(depData[0]);
+        }
         renderAllTasks(); renderProjects();
 
       } else if (type === 'Proyecto' || type === 'Show / Evento') {
@@ -2750,10 +2832,20 @@
           priority: val('f_priority').toLowerCase(), start_date: val('f_start') || todayISO(),
           deadline: val('f_date') || null, responsible: 'Vos', org_id: val('f_org') || null,
           artist_id: val('f_artist') || null, objective: val('f_objective'), description: '',
-          progress: 0, booking_stage: isShow ? 'lead' : ''
+          progress: 0, booking_stage: isShow ? 'lead' : '',
+          area_id: val('f_area') || null, tipo_personal: val('f_tipopersonal') || null
         }]).select();
         if (error) throw error;
-        DB.projects.push(data[0]);
+        const newProj = data[0];
+        DB.projects.push(newProj);
+        if (isShow) {
+          const { data: phaseData, error: phaseErr } = await supabaseClient.from('phases').insert([
+            { project_id: newProj.id, name: 'Pre-producción', sequence_index: 0, status: 'activa' },
+            { project_id: newProj.id, name: 'Producción', sequence_index: 1, status: 'bloqueada' },
+            { project_id: newProj.id, name: 'Post-producción', sequence_index: 2, status: 'bloqueada' }
+          ]).select();
+          if (!phaseErr && phaseData) DB.phases.push(...phaseData);
+        }
         renderProjects(); renderShows();
 
       } else if (type === 'Contacto') {
@@ -2783,10 +2875,12 @@
         renderArtists();
 
       } else if (type === 'Materia') {
+        const facultadArea = DB.areas.find(a => a.name === 'Facultad');
         const { data: projData, error: projErr } = await supabaseClient.from('projects').insert([{
           name: title + ' — TP/Entrega', type: 'facultad', status: 'planificacion', priority: 'media',
           start_date: todayISO(), deadline: val('f_date') || null, responsible: 'Vos',
-          objective: val('f_objective'), description: '', progress: 0
+          objective: val('f_objective'), description: '', progress: 0,
+          area_id: facultadArea ? facultadArea.id : null
         }]).select();
         if (projErr) throw projErr;
         const proj = projData[0];
@@ -2965,6 +3059,36 @@
 
   function selectProject(id) { selectedProjectId = id; renderProjectDetail(id); }
 
+  function renderPhaseChips(projectId) {
+    const phases = phasesOf(projectId);
+    if (!phases.length) return '';
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">' + phases.map(ph => {
+      const clickable = ph.status === 'activa';
+      const style = clickable ? 'cursor:pointer;border-color:var(--accent)' : (ph.status === 'bloqueada' ? 'opacity:0.5' : '');
+      const icon = ph.status === 'completada' ? '✓ ' : (ph.status === 'bloqueada' ? '🔒 ' : '▶ ');
+      const onclick = clickable ? ` onclick="completePhase('${ph.id}')"` : '';
+      return `<span class="proj-task-chip" style="${style}"${onclick}>${icon}${ph.name}</span>`;
+    }).join('') + '</div>';
+  }
+
+  async function completePhase(phaseId) {
+    const ph = DB.phases.find(x => x.id === phaseId);
+    if (!ph) return;
+    try {
+      const { error } = await supabaseClient.from('phases').update({ status: 'completada' }).eq('id', phaseId);
+      if (error) throw error;
+      ph.status = 'completada';
+      const next = DB.phases.find(x => x.project_id === ph.project_id && x.sequence_index === ph.sequence_index + 1);
+      if (next && next.status === 'bloqueada') {
+        const { error: nextErr } = await supabaseClient.from('phases').update({ status: 'activa' }).eq('id', next.id);
+        if (!nextErr) next.status = 'activa';
+      }
+      if (selectedProjectId) renderProjectDetail(selectedProjectId);
+    } catch (error) {
+      alert('Error completando etapa: ' + error.message);
+    }
+  }
+
   function renderProjectDetail(id) {
     const wrap = document.getElementById('projectDetailWrap');
     const p = projectById(id);
@@ -2987,10 +3111,11 @@
           ${org ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('orgs')">${org.name}</span>` : ''}
           ${artist ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('artists')">★ ${artist.name}</span>` : ''}
         </div>
+        ${renderPhaseChips(p.id)}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Tareas (${tasks.length})</div>
-            ${tasks.length ? tasks.map(t => `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div><div class="task-text ${t.done?'done':''}">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
+            ${tasks.length ? tasks.map(t => { const ph = phaseById(t.phase_id); return `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div><div class="task-text ${t.done?'done':''}">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}${ph ? ' · ' + ph.name : ''}</div></div></div>`; }).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
           </div>
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Documentos (${docs.length})</div>
@@ -3004,10 +3129,24 @@
     const t = DB.tasks.find(x => x.id === id);
     if (!t) return;
     const newDone = !t.done;
+    const newStatus = newDone ? 'done' : 'to_do';
     try {
-      const { error } = await supabaseClient.from('tasks').update({ done: newDone }).eq('id', id);
+      const { error } = await supabaseClient.from('tasks').update({ done: newDone, status: newStatus }).eq('id', id);
       if (error) throw error;
       t.done = newDone;
+      t.status = newStatus;
+      if (newDone && t.is_recurring) {
+        const nextDate = addDays(t.scheduled_date || t.due_date || todayISO(), 7);
+        const { data: cloneData, error: cloneErr } = await supabaseClient.from('tasks').insert([{
+          title: t.title, project_id: t.project_id, contact_id: t.contact_id,
+          phase_id: t.phase_id, area_id: t.area_id,
+          due_date: null, scheduled_date: nextDate,
+          priority: t.priority, status: 'to_do', done: false,
+          time_estimate: t.time_estimate, is_recurring: true, tipo_tarea: t.tipo_tarea,
+          create_event: t.create_event
+        }]).select();
+        if (!cloneErr && cloneData) DB.tasks.push(cloneData[0]);
+      }
       renderAllTasks(); renderProjects(); renderHome();
       if (selectedProjectId) renderProjectDetail(selectedProjectId);
     } catch (error) {
@@ -3021,16 +3160,22 @@
   function renderAllTasks() {
     const wrap = document.getElementById('allTasksList');
     if (!wrap) return;
-    const sorted = [...DB.tasks].sort((a,b) => (a.due_date||'').localeCompare(b.due_date||''));
+    const pending = sortTasksPriority(DB.tasks.filter(t => !t.done));
+    const done = DB.tasks.filter(t => t.done).sort((a,b) => (b.due_date||b.scheduled_date||'').localeCompare(a.due_date||a.scheduled_date||''));
+    const sorted = pending.concat(done);
     if (!sorted.length) { wrap.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon">◻</div><div class="empty-title">Sin tareas</div></div>`; return; }
     wrap.innerHTML = sorted.map(t => {
       const proj = projectById(t.project_id);
-      const overdue = !t.done && t.due_date && daysUntil(t.due_date) < 0;
+      const area = areaById(t.area_id) || (proj ? areaById(proj.area_id) : null);
+      const phase = phaseById(t.phase_id);
+      const displayDate = t.scheduled_date || t.due_date;
+      const overdue = !t.done && displayDate && daysUntil(displayDate) < 0;
+      const blocker = blockingTaskOf(t.id);
       return `
       <div class="task-item">
         <div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div>
         <div class="task-text ${t.done?'done':''}">${t.title}
-          <div style="font-size:10.5px;color:${overdue?'var(--red)':'var(--muted)'};margin-top:2px">${fmtDate(t.due_date)}${proj ? ' · ' + proj.name : ''}</div>
+          <div style="font-size:10.5px;color:${overdue?'var(--red)':'var(--muted)'};margin-top:2px">${fmtDate(displayDate)}${proj ? ' · ' + proj.name : ''}${area ? ' · ' + area.name : ''}${phase ? ' · ' + phase.name : ''}${blocker ? ' · 🔒 bloqueada por: ' + blocker.title : ''}</div>
         </div>
         <span class="task-priority p-${t.priority==='alta'?'high':t.priority==='baja'?'low':'med'}">${t.priority}</span>
       </div>`;
@@ -3242,7 +3387,7 @@
     if (todayEl) todayEl.innerHTML = today.length ? today.map(t => `<div class="time-block"><div class="time-bar current"></div><div class="time-content"><div class="time-title">${t.title}</div><div class="time-meta">${projectById(t.project_id)?.name || 'Sin proyecto'}</div></div></div>`).join('') : `<div class="empty-state"><div class="empty-icon">◫</div><div class="empty-title">Sin eventos para hoy</div><div class="empty-desc">Agregá tus reuniones, shows, calls y tareas del día usando el botón + Nuevo</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Tarea')">+ Agregar evento</button></div>`;
 
     const urgentEl = document.getElementById('homeUrgentTasks');
-    if (urgentEl) { const urgent = pendingTasks.filter(t => t.priority === 'alta').slice(0,5); urgentEl.innerHTML = urgent.length ? urgent.map(t => `<div class="task-item"><div class="task-check" onclick="toggleDbTask('${t.id}')"></div><div class="task-text">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:22px">◻</div><div class="empty-title">Sin tareas urgentes</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Tarea')">+ Nueva tarea</button></div>`; }
+    if (urgentEl) { const urgent = sortTasksPriority(pendingTasks).slice(0,5); urgentEl.innerHTML = urgent.length ? urgent.map(t => `<div class="task-item"><div class="task-check" onclick="toggleDbTask('${t.id}')"></div><div class="task-text">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}</div></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:22px">◻</div><div class="empty-title">Sin tareas urgentes</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Tarea')">+ Nueva tarea</button></div>`; }
 
     const showsEl = document.getElementById('homeShows');
     if (showsEl) { const shows = DB.projects.filter(p => p.type==='show' && !['finalizado','cancelado'].includes(p.status)).slice(0,3); showsEl.innerHTML = shows.length ? shows.map(p => `<div class="show-item" onclick="setPanel('tasks');selectProject('${p.id}')"><div class="show-header"><span class="show-title">${p.name}</span><span class="show-status status-${p.booking_stage==='confirmado'?'confirmed':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></div><div class="show-meta"><span>${fmtDate(p.deadline)}</span></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon">♪</div><div class="empty-title">Sin shows cargados</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div>`; }
