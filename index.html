@@ -2389,6 +2389,7 @@
   function orgById(id) { return DB.organizations.find(o => o.id === id); }
   function artistById(id) { return DB.artists.find(a => a.id === id); }
   function tasksOf(projectId) { return DB.tasks.filter(t => t.project_id === projectId); }
+  function notesOf(projectId) { return DB.notes.filter(n => n.project_id === projectId); }
   function areaById(id) { return DB.areas.find(a => a.id === id); }
   function phaseById(id) { return DB.phases.find(ph => ph.id === id); }
   function phasesOf(projectId) { return DB.phases.filter(ph => ph.project_id === projectId).sort((a,b) => a.sequence_index - b.sequence_index); }
@@ -2765,6 +2766,7 @@
       html = `
         <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="f_title"></div>
         <div class="form-group"><label class="form-label">Contenido</label><input class="form-input" id="f_content"></div>
+        <div class="form-group"><label class="form-label">Proyecto</label><select class="form-input" id="f_project"><option value="">— Sin proyecto —</option>${projOptions}</select></div>
         <div class="form-group"><label class="form-label">Tags (separados por coma)</label><input class="form-input" id="f_tags" placeholder="ideas, estrategia..."></div>`;
     } else if (type === 'Objetivo') {
       html = `
@@ -2905,7 +2907,7 @@
 
       } else if (type === 'Nota') {
         const { data, error } = await supabaseClient.from('notes').insert([{
-          title, content: val('f_content') || null,
+          title, content: val('f_content') || null, project_id: val('f_project') || null,
           tags: val('f_tags').split(',').map(s=>s.trim()).filter(Boolean), date: todayISO()
         }]).select();
         if (error) throw error;
@@ -3095,6 +3097,7 @@
     if (!wrap || !p) { if (wrap) wrap.innerHTML=''; return; }
     const org = orgById(p.org_id), artist = artistById(p.artist_id);
     const tasks = tasksOf(p.id);
+    const notes = notesOf(p.id);
     const docs = DB.documents.filter(d => d.project_id === p.id);
     wrap.innerHTML = `
       <div class="card">
@@ -3112,10 +3115,16 @@
           ${artist ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('artists')">★ ${artist.name}</span>` : ''}
         </div>
         ${renderPhaseChips(p.id)}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Tareas (${tasks.length})</div>
             ${tasks.length ? tasks.map(t => { const ph = phaseById(t.phase_id); return `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div><div class="task-text ${t.done?'done':''}">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}${ph ? ' · ' + ph.name : ''}</div></div></div>`; }).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
+            <button class="btn btn-ghost" style="margin-top:8px;font-size:11px" onclick="openModal('Tarea');setTimeout(()=>{const s=document.getElementById('f_project');if(s)s.value='${p.id}';onTaskProjectChange();},0)">+ Agregar tarea</button>
+          </div>
+          <div>
+            <div class="section-title" style="font-size:12px;margin-bottom:8px">Notas (${notes.length})</div>
+            ${notes.length ? notes.map(n => `<div class="task-item"><div class="task-text">${n.title}<div style="font-size:10px;color:var(--muted)">${n.content ? n.content.slice(0,60) + (n.content.length>60?'…':'') : ''}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin notas vinculadas</div>'}
+            <button class="btn btn-ghost" style="margin-top:8px;font-size:11px" onclick="openModal('Nota');setTimeout(()=>{const s=document.getElementById('f_project');if(s)s.value='${p.id}';},0)">+ Agregar nota</button>
           </div>
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Documentos (${docs.length})</div>
@@ -3301,7 +3310,8 @@
     const wrap = document.getElementById('notesListWrap'); if (!wrap) return;
     if (!DB.notes.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">≡</div><div class="empty-title">Sin notas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Nota')">+ Nueva nota</button></div></div>`; return; }
     wrap.innerHTML = `<div class="projects-grid">` + DB.notes.slice().reverse().map(n => {
-      return `<div class="project-card"><div class="proj-name">${n.title}</div><div class="proj-sub" style="margin-bottom:8px">${n.content||''}</div><div class="proj-tasks">${(n.tags||[]).map(t=>`<span class="proj-task-chip">#${t}</span>`).join('')}</div></div>`;
+      const proj = projectById(n.project_id);
+      return `<div class="project-card"><div class="proj-name">${n.title}</div><div class="proj-sub" style="margin-bottom:8px">${n.content||''}</div><div class="proj-tasks">${proj ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('tasks');selectProject('${proj.id}')">${proj.name}</span>` : ''}${(n.tags||[]).map(t=>`<span class="proj-task-chip">#${t}</span>`).join('')}</div></div>`;
     }).join('') + `</div>`;
   }
 
