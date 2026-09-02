@@ -699,6 +699,32 @@
     width: 100%;
   }
 
+  /* WEEK TABLE (cuadrícula semanal) */
+  .week-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .week-table th, .week-table td { border: 1px solid var(--border); padding: 8px 6px; vertical-align: top; }
+  .week-table th { text-align: center; background: var(--surface2); }
+  .week-table th.today-col, .week-table td.today-col { background: rgba(200,245,66,0.05); }
+  .week-th-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .week-th-num { font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .week-th-num.today { color: var(--accent); }
+  .week-event-chip { font-size: 10.5px; padding: 3px 6px; margin-bottom: 4px; border-left: 3px solid; border-radius: 3px; background: var(--surface2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .week-event-chip.clickable { cursor: pointer; }
+  .week-event-chip.clickable:hover { background: var(--border-bright); }
+  .week-day-empty { font-size: 10px; color: var(--muted); text-align: center; padding-top: 6px; }
+
+  /* MONTH CALENDAR */
+  .month-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .month-cal-head { background: var(--surface2); text-align: center; font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 6px 0; }
+  .month-day { background: var(--surface); min-height: 76px; padding: 4px; cursor: pointer; }
+  .month-day:hover { background: var(--surface2); }
+  .month-day.other-month { opacity: 0.35; }
+  .month-day.today { background: rgba(200,245,66,0.06); }
+  .month-day-num { font-size: 11px; font-weight: 600; margin-bottom: 3px; }
+  .month-day-num.today { color: var(--accent); }
+  .month-day-chip { font-size: 8.5px; padding: 1px 4px; margin-bottom: 2px; border-left: 2px solid; border-radius: 2px; background: var(--surface2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .month-day-chip.clickable { cursor: pointer; }
+  .month-day-more { font-size: 8.5px; color: var(--muted); margin-top: 1px; }
+
   /* CONTEXT SWITCHER */
   .context-tabs {
     display: flex;
@@ -1929,7 +1955,18 @@
               <button class="btn btn-ghost" onclick="changeCalWeek(1)">Siguiente →</button>
             </div>
           </div>
-          <div class="week-cal" id="calWeekGrid"></div>
+          <div style="overflow-x:auto"><table class="week-table" id="calWeekGrid"></table></div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="section-header">
+            <div class="section-title"><div class="section-dot" style="background:var(--accent4)"></div><span id="calMonthLabel">Mes</span></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" onclick="changeCalMonth(-1)">← Mes anterior</button>
+              <button class="btn btn-ghost" onclick="changeCalMonth(0)">Este mes</button>
+              <button class="btn btn-ghost" onclick="changeCalMonth(1)">Mes siguiente →</button>
+            </div>
+          </div>
+          <div class="month-cal" id="calMonthGrid"></div>
         </div>
         <div class="card">
           <div class="section-title" style="margin-bottom:16px"><div class="section-dot" style="background:var(--accent3)"></div>Próximos eventos</div>
@@ -3329,12 +3366,36 @@
      RENDER — CALENDARIO (agregador real)
      ========================================================= */
   let calWeekOffset = 0;
+  let calMonthOffset = 0;
   function changeCalWeek(dir) { calWeekOffset = dir === 0 ? 0 : calWeekOffset + dir; renderCalendar(); }
+  function changeCalMonth(dir) { calMonthOffset = dir === 0 ? 0 : calMonthOffset + dir; renderCalendar(); }
+
+  function jumpToWeek(iso) {
+    const target = new Date(iso + 'T00:00:00');
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayMonday = new Date(today); todayMonday.setDate(today.getDate() - ((today.getDay()+6)%7));
+    const targetMonday = new Date(target); targetMonday.setDate(target.getDate() - ((target.getDay()+6)%7));
+    calWeekOffset = Math.round((targetMonday - todayMonday) / (7*86400000));
+    renderCalendar();
+    const gridWrap = document.getElementById('calWeekGrid');
+    if (gridWrap) gridWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  const CAL_TYPE_ICON = { task: '✓', show: '🎤', faculty: '🎓', personal: '•' };
+
+  function calEventChip(e, compact) {
+    const clickable = !!e.projectId;
+    const onclick = clickable ? ` onclick="event.stopPropagation();setPanel('tasks');selectProject('${e.projectId}')"` : '';
+    const cls = compact ? 'month-day-chip' : 'week-event-chip';
+    return `<div class="${cls}${clickable?' clickable':''}" style="border-left-color:${e.color}"${onclick} title="${e.title}">${CAL_TYPE_ICON[e.type]||''} ${e.title}</div>`;
+  }
 
   function renderCalendar() {
     const grid = document.getElementById('calWeekGrid');
     const label = document.getElementById('calWeekLabel');
     const agendaEl = document.getElementById('calAgendaList');
+    const monthGrid = document.getElementById('calMonthGrid');
+    const monthLabel = document.getElementById('calMonthLabel');
     if (!grid) return;
     const events = getAllEvents();
     const today = new Date(); today.setHours(0,0,0,0);
@@ -3342,20 +3403,53 @@
     const dow = (monday.getDay() + 6) % 7; // 0 = lunes
     monday.setDate(monday.getDate() - dow + calWeekOffset * 7);
     const dayLabels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-    let html = '';
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(monday); d.setDate(monday.getDate() + i); weekDays.push(d); }
+
+    const headHtml = '<thead><tr>' + weekDays.map((d,i) => {
+      const iso = d.toISOString().slice(0,10);
+      const isToday = iso === todayISO();
+      return `<th class="${isToday?'today-col':''}"><div class="week-th-label">${dayLabels[i]}</div><div class="week-th-num ${isToday?'today':''}">${d.getDate()}</div></th>`;
+    }).join('') + '</tr></thead>';
+    const bodyHtml = '<tbody><tr>' + weekDays.map(d => {
       const iso = d.toISOString().slice(0,10);
       const isToday = iso === todayISO();
       const dayEvs = events.filter(e => e.date === iso);
-      html += `<div class="day-col"><div class="day-label">${dayLabels[i]}</div><div class="day-num ${isToday?'today':''}">${d.getDate()}</div>
-        <div class="day-events">${dayEvs.slice(0,4).map(e => `<div class="day-event" style="background:${e.color}" title="${e.title}"></div>`).join('')}</div></div>`;
-    }
-    grid.innerHTML = html;
+      return `<td class="${isToday?'today-col':''}">${dayEvs.length ? dayEvs.map(e => calEventChip(e, false)).join('') : '<div class="week-day-empty">—</div>'}</td>`;
+    }).join('') + '</tr></tbody>';
+    grid.innerHTML = headHtml + bodyHtml;
     if (label) {
       const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
       label.textContent = `${monday.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})} — ${sunday.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}`;
     }
+
+    if (monthGrid) {
+      const monthBase = new Date(today.getFullYear(), today.getMonth() + calMonthOffset, 1);
+      const monthStart = new Date(monthBase);
+      const startDow = (monthStart.getDay() + 6) % 7;
+      monthStart.setDate(monthStart.getDate() - startDow);
+      let mHtml = dayLabels.map(l => `<div class="month-cal-head">${l}</div>`).join('');
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(monthStart); d.setDate(monthStart.getDate() + i);
+        const iso = d.toISOString().slice(0,10);
+        const isToday = iso === todayISO();
+        const isOtherMonth = d.getMonth() !== monthBase.getMonth();
+        const dayEvs = events.filter(e => e.date === iso);
+        const shown = dayEvs.slice(0, 3);
+        const extra = dayEvs.length - shown.length;
+        mHtml += `<div class="month-day ${isOtherMonth?'other-month':''} ${isToday?'today':''}" onclick="jumpToWeek('${iso}')">
+          <div class="month-day-num ${isToday?'today':''}">${d.getDate()}</div>
+          ${shown.map(e => calEventChip(e, true)).join('')}
+          ${extra > 0 ? `<div class="month-day-more">+${extra} más</div>` : ''}
+        </div>`;
+      }
+      monthGrid.innerHTML = mHtml;
+    }
+    if (monthLabel) {
+      const monthBase = new Date(today.getFullYear(), today.getMonth() + calMonthOffset, 1);
+      monthLabel.textContent = monthBase.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    }
+
     if (agendaEl) {
       const upcoming = events.filter(e => daysUntil(e.date) >= -3).slice(0, 12);
       if (!upcoming.length) {
