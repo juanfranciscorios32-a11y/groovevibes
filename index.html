@@ -3074,6 +3074,8 @@
     const tabsEl = document.getElementById('projTypeTabs');
     const gridEl = document.getElementById('projectsGrid');
     if (!gridEl) return;
+    const detailWrap = document.getElementById('projectDetailWrap');
+    if (detailWrap && !selectedProjectId) detailWrap.innerHTML = '';
     const cats = [['todos','Todos'],['show','Shows'],['produccion','Producción'],['agencia','Agencia'],['facultad','Facultad'],['personal','Personal'],['otro','Otros']];
     if (tabsEl) tabsEl.innerHTML = cats.map(([k,l]) => `<button class="ctx-tab ${projFilter===k?'active':''}" onclick="setProjFilter('${k}')">${l}</button>`).join('');
 
@@ -3106,7 +3108,12 @@
   function projectEmoji(type) { return { show:'♪', produccion:'▥', diseno:'◐', acustica:'◑', facultad:'◆', agencia:'▦', comercial:'◈', personal:'◉', otro:'●' }[type] || '●'; }
   function statusColor(status) { return { idea:'var(--muted)', planificacion:'var(--accent4)', en_desarrollo:'var(--accent2)', esperando_respuesta:'var(--accent5)', en_ejecucion:'var(--accent)', finalizado:'var(--green)', cancelado:'var(--red)' }[status] || 'var(--muted)'; }
 
-  function selectProject(id) { selectedProjectId = id; renderProjectDetail(id); }
+  function selectProject(id) {
+    selectedProjectId = id;
+    renderProjectDetail(id);
+    const wrap = document.getElementById('projectDetailWrap');
+    if (wrap) setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  }
 
   function renderPhaseChips(projectId) {
     const phases = phasesOf(projectId);
