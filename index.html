@@ -2680,7 +2680,14 @@
 
   function openModal(type) {
     document.getElementById('modalOverlay').classList.add('open');
-    if (type) document.getElementById('newType').value = type;
+    const newTypeSel = document.getElementById('newType');
+    if (type === 'Proyecto') {
+      newTypeSel.innerHTML = Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+      newTypeSel.value = 'show';
+    } else {
+      newTypeSel.innerHTML = '<option>Tarea</option><option>Proyecto</option><option>Show / Evento</option><option>Contacto</option><option>Organización</option><option>Artista</option><option>Materia</option><option>Documento</option><option>Nota</option><option>Objetivo</option><option>Ingreso</option><option>Gasto</option>';
+      if (type) newTypeSel.value = type;
+    }
     updateForm();
   }
   function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
@@ -2726,20 +2733,22 @@
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_createEvent" checked> Crear evento en Calendar</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_recurring"> Tarea recurrente (semanal)</label>
         </div>`;
-    } else if (type === 'Proyecto' || type === 'Show / Evento') {
-      const isShow = type === 'Show / Evento';
+    } else if (type === 'Proyecto' || type === 'Show / Evento' || PROJECT_TYPES_CREATE[type]) {
+      const isShow = type === 'Show / Evento' || type === 'show';
+      const presetProjType = PROJECT_TYPES_CREATE[type] ? type : (isShow ? 'show' : '');
+      const presetAreaName = { show:'Producción', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' }[presetProjType] || '';
       html = `
         <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="f_title" placeholder="${isShow?'Ej: Show Club XYZ':'Ej: Rediseño de marca'}"></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Tipo</label>
             <select class="form-input" id="f_type">
-              ${Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}" ${isShow && k==='show' ? 'selected' : ''}>${v}</option>`).join('')}
+              ${Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}" ${k===presetProjType ? 'selected' : ''}>${v}</option>`).join('')}
             </select>
           </div>
           <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="f_priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Área</label><select class="form-input" id="f_area">${DB.areas.map(a => `<option value="${a.id}" ${isShow && a.name==='Producción' ? 'selected' : ''}>${a.name}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Área</label><select class="form-input" id="f_area">${DB.areas.map(a => `<option value="${a.id}" ${a.name===presetAreaName ? 'selected' : ''}>${a.name}</option>`).join('')}</select></div>
           <div class="form-group"><label class="form-label">Tipo personal</label><select class="form-input" id="f_tipopersonal"><option value="">—</option><option value="investigacion">Investigación</option><option value="ingreso">Ingreso</option><option value="ambos">Ambos</option></select></div>
         </div>
         <div class="form-row">
@@ -2865,8 +2874,8 @@
         }
         renderAllTasks(); renderProjects();
 
-      } else if (type === 'Proyecto' || type === 'Show / Evento') {
-        const isShow = type === 'Show / Evento';
+      } else if (type === 'Proyecto' || type === 'Show / Evento' || PROJECT_TYPES_CREATE[type]) {
+        const isShow = type === 'Show / Evento' || type === 'show';
         const { data, error } = await supabaseClient.from('projects').insert([{
           name: title, type: val('f_type') || (isShow?'show':'otro'), status: 'planificacion',
           priority: val('f_priority').toLowerCase(), start_date: val('f_start') || todayISO(),
