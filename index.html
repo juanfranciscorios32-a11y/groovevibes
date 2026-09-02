@@ -405,9 +405,6 @@
       </div>
       <button class="auth-button" onclick="handleAuthAction()">Acceder</button>
       <div id="authError" style="display: none; margin-top: 12px; padding: 12px; background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3); border-radius: 8px; color: var(--red); font-size: 12px;"></div>
-      <div class="auth-toggle">
-        ¿Primera vez? <a onclick="toggleAuthMode()">Crear cuenta</a>
-      </div>
     </div>
   </div>
 </div>
@@ -676,7 +673,6 @@
   // ============================================
 
   let currentUser = null;
-  let isSignUpMode = false;
 
   async function handleAuthAction() {
     const email = document.getElementById('authEmail').value.trim();
@@ -689,25 +685,13 @@
     }
 
     try {
-      if (isSignUpMode) {
-        // Sign Up
-        const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password
-        });
-        if (error) throw error;
-        showAuthError('✅ Cuenta creada. Ahora inicia sesión.');
-        setTimeout(() => toggleAuthMode(), 2000);
-      } else {
-        // Sign In
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
-        if (error) throw error;
-        currentUser = data.user;
-        loginSuccess();
-      }
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) throw error;
+      currentUser = data.user;
+      loginSuccess();
     } catch (error) {
       console.error('Auth error:', error);
       showAuthError(error.message || 'Error en autenticación');
@@ -718,25 +702,6 @@
     const errorDiv = document.getElementById('authError');
     errorDiv.textContent = msg;
     errorDiv.style.display = 'block';
-  }
-
-  function toggleAuthMode() {
-    isSignUpMode = !isSignUpMode;
-    const button = document.querySelector('.auth-button');
-    const toggle = document.querySelector('.auth-toggle a');
-    const errorDiv = document.getElementById('authError');
-
-    if (isSignUpMode) {
-      button.textContent = 'Crear cuenta';
-      toggle.textContent = '¿Ya tienes cuenta? Inicia sesión';
-    } else {
-      button.textContent = 'Acceder';
-      toggle.textContent = '¿Primera vez? Crear cuenta';
-    }
-
-    errorDiv.style.display = 'none';
-    document.getElementById('authEmail').value = '';
-    document.getElementById('authPassword').value = '';
   }
 
   function loginSuccess() {
@@ -753,7 +718,6 @@
     document.getElementById('mainApp').style.display = 'none';
     document.getElementById('authEmail').value = '';
     document.getElementById('authPassword').value = '';
-    isSignUpMode = false;
   }
 
   // ============================================
