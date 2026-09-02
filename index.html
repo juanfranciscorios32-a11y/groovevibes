@@ -2417,6 +2417,7 @@
   function daysUntil(iso) { const d = new Date(iso + 'T00:00:00'); const t = new Date(todayISO() + 'T00:00:00'); return Math.round((d - t) / 86400000); }
 
   const PROJECT_TYPES = { show:'Show', produccion:'Producción', diseno:'Diseño', acustica:'Acústica', facultad:'Facultad', agencia:'Agencia', comercial:'Comercial', personal:'Personal', otro:'Otro' };
+  const PROJECT_TYPES_CREATE = { show:'Show', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' };
   const PROJECT_STATUS = { idea:'Idea', planificacion:'Planificación', en_desarrollo:'En desarrollo', esperando_respuesta:'Esperando respuesta', en_ejecucion:'En ejecución', finalizado:'Finalizado', cancelado:'Cancelado' };
   const BOOKING_STAGES = ['lead','contactado','respondio','negociacion','confirmado','contrato','show','pago','finalizado'];
   const BOOKING_LABELS = { lead:'Lead', contactado:'Contactado', respondio:'Respondió', negociacion:'Negociación', confirmado:'Confirmado', contrato:'Contrato', show:'Show', pago:'Pago', finalizado:'Finalizado' };
@@ -2732,7 +2733,7 @@
         <div class="form-row">
           <div class="form-group"><label class="form-label">Tipo</label>
             <select class="form-input" id="f_type">
-              ${Object.entries(PROJECT_TYPES).map(([k,v]) => `<option value="${k}" ${isShow && k==='show' ? 'selected' : ''}>${v}</option>`).join('')}
+              ${Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}" ${isShow && k==='show' ? 'selected' : ''}>${v}</option>`).join('')}
             </select>
           </div>
           <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="f_priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
