@@ -3547,10 +3547,13 @@
 
     wrap.innerHTML = headerHtml + alldayHtml + bodyHtml;
 
-    if (!wrap.dataset.scrolled) {
-      const scrollEl = wrap.querySelector('.whg-scroll');
-      if (scrollEl) scrollEl.scrollTop = 7 * WEEK_HOUR_PX;
-      wrap.dataset.scrolled = '1';
+    const scrollEl = wrap.querySelector('.whg-scroll');
+    if (scrollEl) {
+      scrollEl.scrollTop = wrap.dataset.userScrolled ? wrap.dataset.scrollTop : 7 * WEEK_HOUR_PX;
+      scrollEl.addEventListener('scroll', () => {
+        wrap.dataset.userScrolled = '1';
+        wrap.dataset.scrollTop = scrollEl.scrollTop;
+      });
     }
   }
 
