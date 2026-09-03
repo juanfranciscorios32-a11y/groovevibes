@@ -712,6 +712,28 @@
   .week-event-chip.clickable:hover { background: var(--border-bright); }
   .week-day-empty { font-size: 10px; color: var(--muted); text-align: center; padding-top: 6px; }
 
+  /* WEEK HOURLY GRID */
+  .week-hourly-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .whg-header, .whg-allday { display: flex; border-bottom: 1px solid var(--border); }
+  .whg-header { position: sticky; top: 0; background: var(--surface); z-index: 3; }
+  .whg-corner, .whg-corner-label { flex: 0 0 56px; padding: 6px 4px; font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: right; }
+  .whg-daycol-header { flex: 1; text-align: center; padding: 8px 4px; border-left: 1px solid var(--border); }
+  .whg-daycol-header.today { background: rgba(200,245,66,0.05); }
+  .whg-daycol-allday { flex: 1; border-left: 1px solid var(--border); padding: 2px; display: flex; flex-direction: column; gap: 2px; min-height: 24px; }
+  .whg-scroll { max-height: 520px; overflow-y: auto; }
+  .whg-body { position: relative; display: flex; align-items: stretch; }
+  .whg-hourlabels { flex: 0 0 56px; }
+  .whb-hour-label { height: 48px; font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: right; padding-right: 6px; box-sizing: border-box; transform: translateY(-6px); }
+  .whg-daycol { flex: 1; position: relative; border-left: 1px solid var(--border); cursor: pointer; background-image: repeating-linear-gradient(to bottom, transparent, transparent 47px, var(--border) 47px, var(--border) 48px); }
+  .whg-daycol.today { background-color: rgba(200,245,66,0.05); }
+  .whb-event { position: absolute; border-radius: 4px; border-left: 3px solid; background: var(--surface2); padding: 2px 5px; overflow: hidden; font-size: 10px; box-sizing: border-box; }
+  .whb-event.clickable { cursor: pointer; }
+  .whb-event.clickable:hover { background: var(--border-bright); }
+  .whb-event-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .whb-event-time { font-size: 9px; color: var(--muted); }
+  .whb-nowline { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--red); z-index: 2; pointer-events: none; }
+  .whb-nowline::before { content: ''; position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+
   /* MONTH CALENDAR */
   .month-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
   .month-cal-head { background: var(--surface2); text-align: center; font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 6px 0; }
@@ -1955,7 +1977,7 @@
               <button class="btn btn-ghost" onclick="changeCalWeek(1)">Siguiente →</button>
             </div>
           </div>
-          <div style="overflow-x:auto"><table class="week-table" id="calWeekGrid"></table></div>
+          <div class="week-hourly-wrap" id="calWeekGrid"></div>
         </div>
         <div class="card" style="margin-bottom:16px">
           <div class="section-header">
@@ -2463,7 +2485,7 @@
   function getAllEvents() {
     const evs = [];
     DB.tasks.filter(t => (t.scheduled_date || t.due_date) && !t.done).forEach(t => {
-      evs.push({ date: t.scheduled_date || t.due_date, title: t.title, type: 'task', color: 'var(--accent2)', projectId: t.project_id });
+      evs.push({ date: t.scheduled_date || t.due_date, title: t.title, type: 'task', color: 'var(--accent2)', projectId: t.project_id, startTime: t.scheduled_date ? (t.start_time || null) : null, endTime: t.scheduled_date ? (t.end_time || null) : null });
     });
     DB.projects.filter(p => p.type === 'show' && p.deadline).forEach(p => {
       evs.push({ date: p.deadline, title: p.name, type: 'show', color: 'var(--accent3)', projectId: p.id });
@@ -2473,7 +2495,7 @@
       evs.push({ date: f.deadline, title: f.subject + ' — entrega', type: 'faculty', color: 'var(--accent4)', projectId: f.project_id });
     });
     DB.personalEvents.forEach(e => {
-      evs.push({ date: e.date, title: e.title, type: 'personal', color: 'var(--accent5)', projectId: '' });
+      evs.push({ date: e.date, title: e.title, type: 'personal', color: 'var(--accent5)', projectId: '', startTime: e.start_time || null, endTime: e.end_time || null });
     });
     return evs.sort((a,b) => a.date.localeCompare(b.date));
   }
@@ -2725,6 +2747,9 @@
           <div class="form-group"><label class="form-label">Fecha programada</label><input class="form-input" type="date" id="f_scheduled"></div>
         </div>
         <div class="form-row">
+          <div class="form-group"><label class="form-label">Hora (opcional)</label><input class="form-input" type="time" id="f_starttime"></div>
+        </div>
+        <div class="form-row">
           <div class="form-group"><label class="form-label">Estimación (min)</label><input class="form-input" type="number" id="f_estimate" placeholder="Ej: 60"></div>
           <div class="form-group"><label class="form-label">Tipo (Facultad)</label><select class="form-input" id="f_tipotarea"><option value="">—</option><option value="trabajo_practico">Trabajo Práctico</option><option value="examen">Examen</option><option value="preparacion_examen">Preparación de examen</option><option value="revision_contenidos">Revisión de contenidos</option><option value="sesion_estudio">Sesión de estudio</option></select></div>
         </div>
@@ -2859,6 +2884,8 @@
           due_date: val('f_date') || null, scheduled_date: val('f_scheduled') || null,
           priority: val('f_priority').toLowerCase(), status: statusVal, done: statusVal === 'done',
           time_estimate: val('f_estimate') ? parseInt(val('f_estimate')) : null,
+          start_time: val('f_starttime') || null,
+          end_time: val('f_starttime') ? addMinutesToTime(val('f_starttime'), val('f_estimate') ? parseInt(val('f_estimate')) : 60) : null,
           is_recurring: document.getElementById('f_recurring').checked,
           tipo_tarea: val('f_tipotarea') || null,
           create_event: document.getElementById('f_createEvent').checked
@@ -3410,6 +3437,123 @@
     return `<div class="${cls}${clickable?' clickable':''}" style="border-left-color:${e.color}"${onclick} title="${e.title}">${CAL_TYPE_ICON[e.type]||''} ${e.title}</div>`;
   }
 
+  const WEEK_HOUR_PX = 48;
+  function hm(t) { return t ? String(t).slice(0,5) : ''; }
+  function timeToMinutes(hhmm) {
+    if (!hhmm) return null;
+    const parts = String(hhmm).split(':');
+    const h = parseInt(parts[0], 10), m = parseInt(parts[1] || '0', 10);
+    return h * 60 + m;
+  }
+  function addMinutesToTime(hhmm, mins) {
+    const base = timeToMinutes(hhmm);
+    if (base === null) return null;
+    const total = ((base + mins) % 1440 + 1440) % 1440;
+    const h = Math.floor(total / 60), m = total % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  }
+  function layoutDayTimedEvents(dayEvents) {
+    const sorted = dayEvents.slice().sort((a, b) => a.startMin - b.startMin);
+    const lanes = [];
+    sorted.forEach(ev => {
+      let laneIdx = lanes.findIndex(endMin => endMin <= ev.startMin);
+      if (laneIdx === -1) { laneIdx = lanes.length; lanes.push(0); }
+      lanes[laneIdx] = ev.endMin;
+      ev.lane = laneIdx;
+    });
+    const totalLanes = lanes.length || 1;
+    sorted.forEach(ev => { ev.totalLanes = totalLanes; });
+    return sorted;
+  }
+  function handleDayColClick(ev, iso) {
+    if (ev.target !== ev.currentTarget) return;
+    const rect = ev.currentTarget.getBoundingClientRect();
+    const hour = Math.max(0, Math.min(23, Math.floor((ev.clientY - rect.top) / WEEK_HOUR_PX)));
+    openTaskAtSlot(iso, hour);
+  }
+  function openTaskAtSlot(iso, hour) {
+    openModal('Tarea');
+    setTimeout(() => {
+      const sched = document.getElementById('f_scheduled');
+      if (sched) sched.value = iso;
+      const st = document.getElementById('f_starttime');
+      if (st) st.value = String(hour).padStart(2, '0') + ':00';
+    }, 0);
+  }
+  function renderWeekHourly(weekDays, events, dayLabels) {
+    const wrap = document.getElementById('calWeekGrid');
+    if (!wrap) return;
+    const isoOf = d => d.toISOString().slice(0, 10);
+    const now = new Date();
+    const nowIso = todayISO();
+    const weekIsos = weekDays.map(isoOf);
+    const showNowLine = weekIsos.includes(nowIso);
+
+    let headerHtml = '<div class="whg-header"><div class="whg-corner-label"></div>';
+    weekDays.forEach((d, i) => {
+      const iso = isoOf(d);
+      const isToday = iso === nowIso;
+      headerHtml += `<div class="whg-daycol-header${isToday ? ' today' : ''}"><div class="week-th-label">${dayLabels[i]}</div><div class="week-th-num${isToday ? ' today' : ''}">${d.getDate()}</div></div>`;
+    });
+    headerHtml += '</div>';
+
+    let alldayHtml = '<div class="whg-allday"><div class="whg-corner">Todo el día</div>';
+    weekDays.forEach(d => {
+      const iso = isoOf(d);
+      const dayAllDay = events.filter(e => e.date === iso && !e.startTime);
+      alldayHtml += `<div class="whg-daycol-allday">${dayAllDay.map(e => calEventChip(e, false)).join('')}</div>`;
+    });
+    alldayHtml += '</div>';
+
+    let hourLabelsHtml = '<div class="whg-hourlabels">';
+    for (let h = 0; h < 24; h++) {
+      hourLabelsHtml += `<div class="whb-hour-label">${String(h).padStart(2, '0')}:00</div>`;
+    }
+    hourLabelsHtml += '</div>';
+
+    let dayColsHtml = '';
+    weekDays.forEach(d => {
+      const iso = isoOf(d);
+      const isToday = iso === nowIso;
+      const dayTimed = events.filter(e => e.date === iso && e.startTime).map(e => {
+        const startMin = timeToMinutes(e.startTime);
+        let endMin = e.endTime ? timeToMinutes(e.endTime) : startMin + 60;
+        if (endMin <= startMin) endMin = startMin + 30;
+        return Object.assign({}, e, { startMin, endMin });
+      });
+      const laidOut = layoutDayTimedEvents(dayTimed);
+      let eventsHtml = laidOut.map(e => {
+        const top = (e.startMin / 60) * WEEK_HOUR_PX;
+        const height = Math.max(18, ((e.endMin - e.startMin) / 60) * WEEK_HOUR_PX);
+        const widthPct = 100 / e.totalLanes;
+        const leftPct = widthPct * e.lane;
+        const clickable = !!e.projectId;
+        const onclick = clickable ? ` onclick="event.stopPropagation();setPanel('tasks');selectProject('${e.projectId}')"` : '';
+        const timeLabel = hm(e.startTime) + (e.endTime ? '–' + hm(e.endTime) : '');
+        return `<div class="whb-event${clickable ? ' clickable' : ''}" style="top:${top}px;height:${height}px;left:${leftPct}%;width:calc(${widthPct}% - 4px);border-left-color:${e.color}"${onclick} title="${e.title}">
+          <div class="whb-event-title">${CAL_TYPE_ICON[e.type] || ''} ${e.title}</div>
+          <div class="whb-event-time">${timeLabel}</div>
+        </div>`;
+      }).join('');
+      let nowLineHtml = '';
+      if (isToday && showNowLine) {
+        const nowTop = (now.getHours() + now.getMinutes() / 60) * WEEK_HOUR_PX;
+        nowLineHtml = `<div class="whb-nowline" style="top:${nowTop}px"></div>`;
+      }
+      dayColsHtml += `<div class="whg-daycol${isToday ? ' today' : ''}" onclick="handleDayColClick(event, '${iso}')">${eventsHtml}${nowLineHtml}</div>`;
+    });
+
+    const bodyHtml = `<div class="whg-scroll"><div class="whg-body">${hourLabelsHtml}${dayColsHtml}</div></div>`;
+
+    wrap.innerHTML = headerHtml + alldayHtml + bodyHtml;
+
+    if (!wrap.dataset.scrolled) {
+      const scrollEl = wrap.querySelector('.whg-scroll');
+      if (scrollEl) scrollEl.scrollTop = 7 * WEEK_HOUR_PX;
+      wrap.dataset.scrolled = '1';
+    }
+  }
+
   function renderCalendar() {
     const grid = document.getElementById('calWeekGrid');
     const label = document.getElementById('calWeekLabel');
@@ -3426,18 +3570,7 @@
     const weekDays = [];
     for (let i = 0; i < 7; i++) { const d = new Date(monday); d.setDate(monday.getDate() + i); weekDays.push(d); }
 
-    const headHtml = '<thead><tr>' + weekDays.map((d,i) => {
-      const iso = d.toISOString().slice(0,10);
-      const isToday = iso === todayISO();
-      return `<th class="${isToday?'today-col':''}"><div class="week-th-label">${dayLabels[i]}</div><div class="week-th-num ${isToday?'today':''}">${d.getDate()}</div></th>`;
-    }).join('') + '</tr></thead>';
-    const bodyHtml = '<tbody><tr>' + weekDays.map(d => {
-      const iso = d.toISOString().slice(0,10);
-      const isToday = iso === todayISO();
-      const dayEvs = events.filter(e => e.date === iso);
-      return `<td class="${isToday?'today-col':''}">${dayEvs.length ? dayEvs.map(e => calEventChip(e, false)).join('') : '<div class="week-day-empty">—</div>'}</td>`;
-    }).join('') + '</tr></tbody>';
-    grid.innerHTML = headHtml + bodyHtml;
+    renderWeekHourly(weekDays, events, dayLabels);
     if (label) {
       const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
       label.textContent = `${monday.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})} — ${sunday.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}`;
