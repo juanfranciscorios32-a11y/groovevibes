@@ -2372,6 +2372,21 @@
   const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   /* =========================================================
+     SEGURIDAD — escape de HTML antes de insertar en innerHTML
+     Evita XSS almacenado desde texto de usuario (Inbox, Notas,
+     Tareas, Contactos, eventos sincronizados de Google Calendar, etc.)
+     ========================================================= */
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /* =========================================================
      MOTOR DE DATOS — todo vive en Supabase (Postgres), protegido
      por RLS. No hay copia de datos reales en este archivo ni en
      localStorage (salvo el Habit Tracker, que no tiene tabla).
@@ -2721,10 +2736,10 @@
   function updateForm() {
     const type = document.getElementById('newType').value;
     const wrap = document.getElementById('dynamicFields');
-    const projOptions = DB.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    const contactOptions = DB.contacts.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    const orgOptions = DB.organizations.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
-    const artistOptions = DB.artists.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    const projOptions = DB.projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    const contactOptions = DB.contacts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    const orgOptions = DB.organizations.map(o => `<option value="${o.id}">${escapeHtml(o.name)}</option>`).join('');
+    const artistOptions = DB.artists.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
 
     let html = '';
     if (type === 'Tarea') {
@@ -2753,7 +2768,7 @@
           <div class="form-group"><label class="form-label">Estimación (min)</label><input class="form-input" type="number" id="f_estimate" placeholder="Ej: 60"></div>
           <div class="form-group"><label class="form-label">Tipo (Facultad)</label><select class="form-input" id="f_tipotarea"><option value="">—</option><option value="trabajo_practico">Trabajo Práctico</option><option value="examen">Examen</option><option value="preparacion_examen">Preparación de examen</option><option value="revision_contenidos">Revisión de contenidos</option><option value="sesion_estudio">Sesión de estudio</option></select></div>
         </div>
-        <div class="form-group"><label class="form-label">Depende de</label><select class="form-input" id="f_dependson"><option value="">— Ninguna —</option>${DB.tasks.filter(t=>!t.done).map(t => `<option value="${t.id}">${t.title}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label">Depende de</label><select class="form-input" id="f_dependson"><option value="">— Ninguna —</option>${DB.tasks.filter(t=>!t.done).map(t => `<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('')}</select></div>
         <div class="form-group" style="display:flex;gap:18px;flex-wrap:wrap">
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_createEvent" checked> Crear evento en Calendar</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_recurring"> Tarea recurrente (semanal)</label>
@@ -2864,7 +2879,7 @@
     const sel = document.getElementById('f_phase');
     if (!sel) return;
     const phases = projId ? phasesOf(projId) : [];
-    sel.innerHTML = '<option value="">— Sin etapa —</option>' + phases.map(ph => `<option value="${ph.id}">${ph.name} (${ph.status})</option>`).join('');
+    sel.innerHTML = '<option value="">— Sin etapa —</option>' + phases.map(ph => `<option value="${ph.id}">${escapeHtml(ph.name)} (${ph.status})</option>`).join('');
   }
 
   async function saveNewItem() {
@@ -3083,7 +3098,7 @@
     }
     list.innerHTML = pending.map(i => `
       <div class="task-item">
-        <div class="task-text">${i.text}<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDate(i.date)}</div></div>
+        <div class="task-text">${escapeHtml(i.text)}<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDate(i.date)}</div></div>
         <button class="btn btn-ghost" style="font-size:10.5px;padding:4px 8px" onclick="processInboxItem('${i.id}')">→ Procesar a tarea</button>
         <button class="btn btn-ghost" style="font-size:10.5px;padding:4px 8px" onclick="deleteInboxItem('${i.id}')">✕</button>
       </div>`).join('');
@@ -3121,11 +3136,11 @@
             <span class="proj-emoji">${projectEmoji(p.type)}</span>
             <span class="proj-status-dot" style="background:${statusColor(p.status)}" title="${PROJECT_STATUS[p.status]||p.status}"></span>
           </div>
-          <div class="proj-name">${p.name}</div>
+          <div class="proj-name">${escapeHtml(p.name)}</div>
           <div class="proj-sub">${PROJECT_TYPES[p.type]||p.type} · ${PROJECT_STATUS[p.status]||p.status} · vence ${fmtDate(p.deadline)}</div>
           <div class="proj-progress-label"><span>Progreso</span><span>${p.progress||0}%</span></div>
           <div class="proj-bar"><div class="proj-fill" style="width:${p.progress||0}%;background:var(--accent)"></div></div>
-          <div class="proj-tasks">${pending.slice(0,3).map(t => `<span class="proj-task-chip">${t.title}</span>`).join('') || '<span class="proj-task-chip">Sin tareas pendientes</span>'}</div>
+          <div class="proj-tasks">${pending.slice(0,3).map(t => `<span class="proj-task-chip">${escapeHtml(t.title)}</span>`).join('') || '<span class="proj-task-chip">Sin tareas pendientes</span>'}</div>
         </div>`;
       }).join('');
     }
@@ -3150,7 +3165,7 @@
       const style = clickable ? 'cursor:pointer;border-color:var(--accent)' : (ph.status === 'bloqueada' ? 'opacity:0.5' : '');
       const icon = ph.status === 'completada' ? '✓ ' : (ph.status === 'bloqueada' ? '🔒 ' : '▶ ');
       const onclick = clickable ? ` onclick="completePhase('${ph.id}')"` : '';
-      return `<span class="proj-task-chip" style="${style}"${onclick}>${icon}${ph.name}</span>`;
+      return `<span class="proj-task-chip" style="${style}"${onclick}>${icon}${escapeHtml(ph.name)}</span>`;
     }).join('') + '</div>';
   }
 
@@ -3183,36 +3198,36 @@
     wrap.innerHTML = `
       <div class="card">
         <div class="section-header">
-          <div class="section-title"><div class="section-dot" style="background:${statusColor(p.status)}"></div>${projectEmoji(p.type)} ${p.name}</div>
+          <div class="section-title"><div class="section-dot" style="background:${statusColor(p.status)}"></div>${projectEmoji(p.type)} ${escapeHtml(p.name)}</div>
           <button class="btn btn-ghost" onclick="selectedProjectId=null;renderProjects()">Cerrar ✕</button>
         </div>
         ${renderPhaseChips(p.id)}
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px">
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Información general</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${p.objective || 'Sin objetivo definido'}</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${escapeHtml(p.objective) || 'Sin objetivo definido'}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <span class="proj-task-chip">Tipo: ${PROJECT_TYPES[p.type]||p.type}</span>
               <span class="proj-task-chip">Estado: ${PROJECT_STATUS[p.status]||p.status}</span>
               <span class="proj-task-chip">Prioridad: ${p.priority}</span>
               <span class="proj-task-chip">Deadline: ${fmtDate(p.deadline)}</span>
-              ${org ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('orgs')">${org.name}</span>` : ''}
-              ${artist ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('artists')">★ ${artist.name}</span>` : ''}
+              ${org ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('orgs')">${escapeHtml(org.name)}</span>` : ''}
+              ${artist ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('artists')">★ ${escapeHtml(artist.name)}</span>` : ''}
             </div>
           </div>
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Tareas (${tasks.length})</div>
-            ${tasks.length ? tasks.map(t => { const ph = phaseById(t.phase_id); return `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div><div class="task-text ${t.done?'done':''}">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}${ph ? ' · ' + ph.name : ''}</div></div></div>`; }).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
+            ${tasks.length ? tasks.map(t => { const ph = phaseById(t.phase_id); return `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div><div class="task-text ${t.done?'done':''}">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}${ph ? ' · ' + escapeHtml(ph.name) : ''}</div></div></div>`; }).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
             <button class="btn btn-ghost" style="margin-top:8px;font-size:11px" onclick="openModal('Tarea');setTimeout(()=>{const s=document.getElementById('f_project');if(s)s.value='${p.id}';onTaskProjectChange();},0)">+ Agregar tarea</button>
           </div>
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Notas (${notes.length})</div>
-            ${notes.length ? notes.map(n => `<div class="task-item"><div class="task-text">${n.title}<div style="font-size:10px;color:var(--muted)">${n.content ? n.content.slice(0,60) + (n.content.length>60?'…':'') : ''}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin notas vinculadas</div>'}
+            ${notes.length ? notes.map(n => `<div class="task-item"><div class="task-text">${escapeHtml(n.title)}<div style="font-size:10px;color:var(--muted)">${n.content ? escapeHtml(n.content.slice(0,60)) + (n.content.length>60?'…':'') : ''}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin notas vinculadas</div>'}
             <button class="btn btn-ghost" style="margin-top:8px;font-size:11px" onclick="openModal('Nota');setTimeout(()=>{const s=document.getElementById('f_project');if(s)s.value='${p.id}';},0)">+ Agregar nota</button>
           </div>
           <div>
             <div class="section-title" style="font-size:12px;margin-bottom:8px">Documentos (${docs.length})</div>
-            ${docs.length ? docs.map(d => `<div class="task-item"><div class="task-text">${d.title}<div style="font-size:10px;color:var(--muted)">${d.type}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin documentos vinculados</div>'}
+            ${docs.length ? docs.map(d => `<div class="task-item"><div class="task-text">${escapeHtml(d.title)}<div style="font-size:10px;color:var(--muted)">${escapeHtml(d.type)}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin documentos vinculados</div>'}
           </div>
         </div>
       </div>`;
@@ -3267,8 +3282,8 @@
       return `
       <div class="task-item">
         <div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div>
-        <div class="task-text ${t.done?'done':''}">${t.title}
-          <div style="font-size:10.5px;color:${overdue?'var(--red)':'var(--muted)'};margin-top:2px">${fmtDate(displayDate)}${proj ? ' · ' + proj.name : ''}${area ? ' · ' + area.name : ''}${phase ? ' · ' + phase.name : ''}${blocker ? ' · 🔒 bloqueada por: ' + blocker.title : ''}</div>
+        <div class="task-text ${t.done?'done':''}">${escapeHtml(t.title)}
+          <div style="font-size:10.5px;color:${overdue?'var(--red)':'var(--muted)'};margin-top:2px">${fmtDate(displayDate)}${proj ? ' · ' + escapeHtml(proj.name) : ''}${area ? ' · ' + escapeHtml(area.name) : ''}${phase ? ' · ' + escapeHtml(phase.name) : ''}${blocker ? ' · 🔒 bloqueada por: ' + escapeHtml(blocker.title) : ''}</div>
         </div>
         <span class="task-priority p-${t.priority==='alta'?'high':t.priority==='baja'?'low':'med'}">${t.priority}</span>
       </div>`;
@@ -3295,12 +3310,12 @@
     tbody.innerHTML = shows.map(p => {
       const org = orgById(p.org_id), artist = artistById(p.artist_id);
       return `<tr onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer">
-        <td>${p.name}</td>
-        <td>${org ? org.name + (org.city ? ' · ' + org.city : '') : '—'}</td>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${org ? escapeHtml(org.name) + (org.city ? ' · ' + escapeHtml(org.city) : '') : '—'}</td>
         <td>${fmtDate(p.deadline)}</td>
         <td class="show-fee">${artist && artist.fee ? '$'+artist.fee : '—'}</td>
         <td><span class="show-status status-${p.booking_stage==='confirmado'||p.booking_stage==='contrato'||p.booking_stage==='pago'||p.booking_stage==='finalizado'?'confirmed':p.booking_stage==='negociacion'?'nego':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></td>
-        <td>${artist ? artist.name : '—'}</td>
+        <td>${artist ? escapeHtml(artist.name) : '—'}</td>
       </tr>`;
     }).join('');
   }
@@ -3317,9 +3332,9 @@
       const proj = projectById(f.project_id);
       return `<div class="project-card" onclick="${proj ? `setPanel('tasks');selectProject('${proj.id}')` : ''}">
         <div class="proj-top"><span class="proj-emoji">◆</span><span class="proj-status-dot" style="background:${d===null?'var(--muted)':d<0?'var(--red)':d<=3?'var(--accent5)':'var(--accent4)'}"></span></div>
-        <div class="proj-name">${f.subject}</div>
-        <div class="proj-sub">${f.professor || 'Sin profesor'} · entrega ${fmtDate(f.deadline)}${d!==null ? ' (' + (d<0?'vencido':'en '+d+'d') + ')' : ''}</div>
-        <div class="proj-tasks"><span class="proj-task-chip">${f.objective || 'Sin objetivo'}</span></div>
+        <div class="proj-name">${escapeHtml(f.subject)}</div>
+        <div class="proj-sub">${escapeHtml(f.professor) || 'Sin profesor'} · entrega ${fmtDate(f.deadline)}${d!==null ? ' (' + (d<0?'vencido':'en '+d+'d') + ')' : ''}</div>
+        <div class="proj-tasks"><span class="proj-task-chip">${escapeHtml(f.objective) || 'Sin objetivo'}</span></div>
       </div>`;
     }).join('') + `</div>`;
   }
@@ -3336,8 +3351,8 @@
     wrap.innerHTML = `<div class="card"><div style="display:flex;flex-direction:column;gap:2px">` + list.map(c => {
       const projCount = DB.projects.filter(p => tasksOf(p.id).some(t => t.contact_id === c.id)).length;
       return `<div class="task-item" onclick="selectContact('${c.id}')">
-        <div class="avatar" style="width:28px;height:28px;font-size:10px">${c.name.slice(0,2).toUpperCase()}</div>
-        <div class="task-text">${c.name}<div style="font-size:10.5px;color:var(--muted)">${c.role || ''}${c.company ? ' · '+c.company : ''}</div></div>
+        <div class="avatar" style="width:28px;height:28px;font-size:10px">${escapeHtml(c.name.slice(0,2).toUpperCase())}</div>
+        <div class="task-text">${escapeHtml(c.name)}<div style="font-size:10.5px;color:var(--muted)">${escapeHtml(c.role) || ''}${c.company ? ' · '+escapeHtml(c.company) : ''}</div></div>
         <span class="proj-task-chip">${projCount} vinc.</span>
       </div>`;
     }).join('') + `</div></div>`;
@@ -3350,12 +3365,12 @@
     const relatedTasks = DB.tasks.filter(t => t.contact_id === id);
     wrap.innerHTML = `<div class="card">
       <div class="section-header">
-        <div class="section-title"><div class="section-dot"></div>${c.name}</div>
+        <div class="section-title"><div class="section-dot"></div>${escapeHtml(c.name)}</div>
         <button class="btn btn-ghost" onclick="document.getElementById('contactDetailWrap').innerHTML=''">Cerrar ✕</button>
       </div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">${c.role||''} ${c.company?'· '+c.company:''} ${c.email?'· '+c.email:''} ${c.phone?'· '+c.phone:''}</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">${escapeHtml(c.role)||''} ${c.company?'· '+escapeHtml(c.company):''} ${c.email?'· '+escapeHtml(c.email):''} ${c.phone?'· '+escapeHtml(c.phone):''}</div>
       <div class="section-title" style="font-size:12px;margin-bottom:8px">Tareas vinculadas (${relatedTasks.length})</div>
-      ${relatedTasks.length ? relatedTasks.map(t => `<div class="task-item"><div class="task-text">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
+      ${relatedTasks.length ? relatedTasks.map(t => `<div class="task-item"><div class="task-text">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
     </div>`;
   }
 
@@ -3367,7 +3382,7 @@
     if (!DB.organizations.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">▦</div><div class="empty-title">Sin organizaciones</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Organización')">+ Nueva</button></div></div>`; return; }
     wrap.innerHTML = `<div class="projects-grid">` + DB.organizations.map(o => {
       const projCount = DB.projects.filter(p => p.org_id === o.id).length;
-      return `<div class="project-card"><div class="proj-top"><span class="proj-emoji">▦</span></div><div class="proj-name">${o.name}</div><div class="proj-sub">${o.type} ${o.city ? '· '+o.city : ''}</div><div class="proj-tasks"><span class="proj-task-chip">${projCount} proyecto(s)</span></div></div>`;
+      return `<div class="project-card"><div class="proj-top"><span class="proj-emoji">▦</span></div><div class="proj-name">${escapeHtml(o.name)}</div><div class="proj-sub">${escapeHtml(o.type)} ${o.city ? '· '+escapeHtml(o.city) : ''}</div><div class="proj-tasks"><span class="proj-task-chip">${projCount} proyecto(s)</span></div></div>`;
     }).join('') + `</div>`;
   }
 
@@ -3377,7 +3392,7 @@
     wrap.innerHTML = `<div class="projects-grid">` + DB.artists.map(a => {
       const c = contactById(a.contact_id);
       const shows = DB.projects.filter(p => p.artist_id === a.id);
-      return `<div class="project-card"><div class="proj-top"><span class="proj-emoji">★</span></div><div class="proj-name">${a.name}</div><div class="proj-sub">${a.genre||'—'} ${a.country?'· '+a.country:''} ${a.fee?'· $'+a.fee:''}</div><div class="proj-tasks">${c?`<span class="proj-task-chip">Mgmt: ${c.name}</span>`:''}<span class="proj-task-chip">${shows.length} proyecto(s)</span></div></div>`;
+      return `<div class="project-card"><div class="proj-top"><span class="proj-emoji">★</span></div><div class="proj-name">${escapeHtml(a.name)}</div><div class="proj-sub">${escapeHtml(a.genre)||'—'} ${a.country?'· '+escapeHtml(a.country):''} ${a.fee?'· $'+a.fee:''}</div><div class="proj-tasks">${c?`<span class="proj-task-chip">Mgmt: ${escapeHtml(c.name)}</span>`:''}<span class="proj-task-chip">${shows.length} proyecto(s)</span></div></div>`;
     }).join('') + `</div>`;
   }
 
@@ -3386,7 +3401,7 @@
     if (!DB.documents.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">▣</div><div class="empty-title">Sin documentos</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Documento')">+ Nuevo</button></div></div>`; return; }
     wrap.innerHTML = `<div class="card"><div style="display:flex;flex-direction:column;gap:2px">` + DB.documents.map(d => {
       const p = projectById(d.project_id);
-      return `<div class="task-item"><div class="task-text">${d.title}<div style="font-size:10.5px;color:var(--muted)">${d.type}${p?' · '+p.name:''} · ${fmtDate(d.date)}</div></div></div>`;
+      return `<div class="task-item"><div class="task-text">${escapeHtml(d.title)}<div style="font-size:10.5px;color:var(--muted)">${escapeHtml(d.type)}${p?' · '+escapeHtml(p.name):''} · ${fmtDate(d.date)}</div></div></div>`;
     }).join('') + `</div></div>`;
   }
 
@@ -3395,7 +3410,7 @@
     if (!DB.notes.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">≡</div><div class="empty-title">Sin notas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Nota')">+ Nueva nota</button></div></div>`; return; }
     wrap.innerHTML = `<div class="projects-grid">` + DB.notes.slice().reverse().map(n => {
       const proj = projectById(n.project_id);
-      return `<div class="project-card"><div class="proj-name">${n.title}</div><div class="proj-sub" style="margin-bottom:8px">${n.content||''}</div><div class="proj-tasks">${proj ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('tasks');selectProject('${proj.id}')">${proj.name}</span>` : ''}${(n.tags||[]).map(t=>`<span class="proj-task-chip">#${t}</span>`).join('')}</div></div>`;
+      return `<div class="project-card"><div class="proj-name">${escapeHtml(n.title)}</div><div class="proj-sub" style="margin-bottom:8px">${escapeHtml(n.content)||''}</div><div class="proj-tasks">${proj ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('tasks');selectProject('${proj.id}')">${escapeHtml(proj.name)}</span>` : ''}${(n.tags||[]).map(t=>`<span class="proj-task-chip">#${escapeHtml(t)}</span>`).join('')}</div></div>`;
     }).join('') + `</div>`;
   }
 
@@ -3404,7 +3419,7 @@
     if (!DB.goals.length) { wrap.innerHTML = `<div class="empty-state" style="padding:40px 0"><div class="empty-icon">◉</div><div class="empty-title">Sin objetivos cargados</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Objetivo')">+ Definir objetivo</button></div>`; return; }
     wrap.innerHTML = DB.goals.map(g => `
       <div class="goal-item">
-        <div class="goal-header"><span class="goal-name">${g.name}</span><span class="goal-pct">${g.pct}%</span></div>
+        <div class="goal-header"><span class="goal-name">${escapeHtml(g.name)}</span><span class="goal-pct">${g.pct}%</span></div>
         <div class="goal-bar"><div class="goal-fill" style="width:${g.pct}%;background:${g.color}"></div></div>
       </div>`).join('');
   }
@@ -3434,7 +3449,8 @@
     const clickable = !!e.projectId;
     const onclick = clickable ? ` onclick="event.stopPropagation();setPanel('tasks');selectProject('${e.projectId}')"` : '';
     const cls = compact ? 'month-day-chip' : 'week-event-chip';
-    return `<div class="${cls}${clickable?' clickable':''}" style="border-left-color:${e.color}"${onclick} title="${e.title}">${CAL_TYPE_ICON[e.type]||''} ${e.title}</div>`;
+    const safeTitle = escapeHtml(e.title);
+    return `<div class="${cls}${clickable?' clickable':''}" style="border-left-color:${e.color}"${onclick} title="${safeTitle}">${CAL_TYPE_ICON[e.type]||''} ${safeTitle}</div>`;
   }
 
   const WEEK_HOUR_PX = 48;
@@ -3530,8 +3546,9 @@
         const clickable = !!e.projectId;
         const onclick = clickable ? ` onclick="event.stopPropagation();setPanel('tasks');selectProject('${e.projectId}')"` : '';
         const timeLabel = hm(e.startTime) + (e.endTime ? '–' + hm(e.endTime) : '');
-        return `<div class="whb-event${clickable ? ' clickable' : ''}" style="top:${top}px;height:${height}px;left:${leftPct}%;width:calc(${widthPct}% - 4px);border-left-color:${e.color}"${onclick} title="${e.title}">
-          <div class="whb-event-title">${CAL_TYPE_ICON[e.type] || ''} ${e.title}</div>
+        const safeTitle = escapeHtml(e.title);
+        return `<div class="whb-event${clickable ? ' clickable' : ''}" style="top:${top}px;height:${height}px;left:${leftPct}%;width:calc(${widthPct}% - 4px);border-left-color:${e.color}"${onclick} title="${safeTitle}">
+          <div class="whb-event-title">${CAL_TYPE_ICON[e.type] || ''} ${safeTitle}</div>
           <div class="whb-event-time">${timeLabel}</div>
         </div>`;
       }).join('');
@@ -3615,7 +3632,7 @@
           <div class="time-block">
             <div class="time-label ${e.date===todayISO()?'now-label':''}">${fmtDate(e.date)}</div>
             <div class="time-bar" style="background:${e.color}"></div>
-            <div class="time-content"><div class="time-title">${e.title}</div><div class="time-meta">${e.type}</div></div>
+            <div class="time-content"><div class="time-title">${escapeHtml(e.title)}</div><div class="time-meta">${e.type}</div></div>
           </div>`).join('');
       }
     }
@@ -3632,28 +3649,28 @@
     const activeProjects = DB.projects.filter(p => !['finalizado','cancelado'].includes(p.status));
 
     const overdueEl = document.getElementById('homeOverdue');
-    if (overdueEl) overdueEl.innerHTML = overdue.length ? overdue.slice(0,5).map(t => `<div class="task-item"><div class="task-text" style="color:var(--red)">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Nada vencido</div>`;
+    if (overdueEl) overdueEl.innerHTML = overdue.length ? overdue.slice(0,5).map(t => `<div class="task-item"><div class="task-text" style="color:var(--red)">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Nada vencido</div>`;
 
     const upcomingEl = document.getElementById('homeUpcoming');
-    if (upcomingEl) upcomingEl.innerHTML = upcoming.length ? upcoming.slice(0,5).map(t => `<div class="task-item"><div class="task-text">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin deadlines en los próximos días</div>`;
+    if (upcomingEl) upcomingEl.innerHTML = upcoming.length ? upcoming.slice(0,5).map(t => `<div class="task-item"><div class="task-text">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin deadlines en los próximos días</div>`;
 
     const nextActionsEl = document.getElementById('homeNextActions');
     if (nextActionsEl) {
       const actions = activeProjects.map(p => { const t = tasksOf(p.id).filter(x=>!x.done).sort((a,b)=>(a.due_date||'').localeCompare(b.due_date||''))[0]; return t ? {p,t} : null; }).filter(Boolean);
-      nextActionsEl.innerHTML = actions.length ? actions.slice(0,5).map(({p,t}) => `<div class="task-item" onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer"><div class="task-text">${t.title}<div style="font-size:10px;color:var(--muted)">${p.name}</div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin próximas acciones definidas</div>`;
+      nextActionsEl.innerHTML = actions.length ? actions.slice(0,5).map(({p,t}) => `<div class="task-item" onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer"><div class="task-text">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${escapeHtml(p.name)}</div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin próximas acciones definidas</div>`;
     }
 
     const todayEl = document.getElementById('homeToday');
-    if (todayEl) todayEl.innerHTML = today.length ? today.map(t => `<div class="time-block"><div class="time-bar current"></div><div class="time-content"><div class="time-title">${t.title}</div><div class="time-meta">${projectById(t.project_id)?.name || 'Sin proyecto'}</div></div></div>`).join('') : `<div class="empty-state"><div class="empty-icon">◫</div><div class="empty-title">Sin eventos para hoy</div><div class="empty-desc">Agregá tus reuniones, shows, calls y tareas del día usando el botón + Nuevo</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Tarea')">+ Agregar evento</button></div>`;
+    if (todayEl) todayEl.innerHTML = today.length ? today.map(t => `<div class="time-block"><div class="time-bar current"></div><div class="time-content"><div class="time-title">${escapeHtml(t.title)}</div><div class="time-meta">${escapeHtml(projectById(t.project_id)?.name) || 'Sin proyecto'}</div></div></div>`).join('') : `<div class="empty-state"><div class="empty-icon">◫</div><div class="empty-title">Sin eventos para hoy</div><div class="empty-desc">Agregá tus reuniones, shows, calls y tareas del día usando el botón + Nuevo</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Tarea')">+ Agregar evento</button></div>`;
 
     const urgentEl = document.getElementById('homeUrgentTasks');
-    if (urgentEl) { const urgent = sortTasksPriority(pendingTasks).slice(0,5); urgentEl.innerHTML = urgent.length ? urgent.map(t => `<div class="task-item"><div class="task-check" onclick="toggleDbTask('${t.id}')"></div><div class="task-text">${t.title}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}</div></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:22px">◻</div><div class="empty-title">Sin tareas urgentes</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Tarea')">+ Nueva tarea</button></div>`; }
+    if (urgentEl) { const urgent = sortTasksPriority(pendingTasks).slice(0,5); urgentEl.innerHTML = urgent.length ? urgent.map(t => `<div class="task-item"><div class="task-check" onclick="toggleDbTask('${t.id}')"></div><div class="task-text">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}</div></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:22px">◻</div><div class="empty-title">Sin tareas urgentes</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Tarea')">+ Nueva tarea</button></div>`; }
 
     const showsEl = document.getElementById('homeShows');
-    if (showsEl) { const shows = DB.projects.filter(p => p.type==='show' && !['finalizado','cancelado'].includes(p.status)).slice(0,3); showsEl.innerHTML = shows.length ? shows.map(p => `<div class="show-item" onclick="setPanel('tasks');selectProject('${p.id}')"><div class="show-header"><span class="show-title">${p.name}</span><span class="show-status status-${p.booking_stage==='confirmado'?'confirmed':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></div><div class="show-meta"><span>${fmtDate(p.deadline)}</span></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon">♪</div><div class="empty-title">Sin shows cargados</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div>`; }
+    if (showsEl) { const shows = DB.projects.filter(p => p.type==='show' && !['finalizado','cancelado'].includes(p.status)).slice(0,3); showsEl.innerHTML = shows.length ? shows.map(p => `<div class="show-item" onclick="setPanel('tasks');selectProject('${p.id}')"><div class="show-header"><span class="show-title">${escapeHtml(p.name)}</span><span class="show-status status-${p.booking_stage==='confirmado'?'confirmed':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></div><div class="show-meta"><span>${fmtDate(p.deadline)}</span></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon">♪</div><div class="empty-title">Sin shows cargados</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div>`; }
 
     const activeEl = document.getElementById('homeActiveProjects');
-    if (activeEl) activeEl.innerHTML = activeProjects.length ? activeProjects.slice(0,5).map(p => `<div class="goal-item" onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer"><div class="goal-header"><span class="goal-name">${projectEmoji(p.type)} ${p.name}</span><span class="goal-pct">${p.progress||0}%</span></div><div class="goal-bar"><div class="goal-fill" style="width:${p.progress||0}%;background:${statusColor(p.status)}"></div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin proyectos activos</div>`;
+    if (activeEl) activeEl.innerHTML = activeProjects.length ? activeProjects.slice(0,5).map(p => `<div class="goal-item" onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer"><div class="goal-header"><span class="goal-name">${projectEmoji(p.type)} ${escapeHtml(p.name)}</span><span class="goal-pct">${p.progress||0}%</span></div><div class="goal-bar"><div class="goal-fill" style="width:${p.progress||0}%;background:${statusColor(p.status)}"></div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin proyectos activos</div>`;
   }
 
   function renderAll() {
@@ -3750,11 +3767,11 @@
     };
     if (ingCatEl) {
       const rows = byCat('ingreso');
-      ingCatEl.innerHTML = rows.length ? rows.map(([cat, total]) => `<div class="finance-row"><span>${cat}</span><span class="finance-amount fin-income">+$${total.toLocaleString('es-AR')}</span></div>`).join('') : `<div class="empty-state" style="padding:12px 0"><div class="empty-desc">Sin ingresos cargados</div></div>`;
+      ingCatEl.innerHTML = rows.length ? rows.map(([cat, total]) => `<div class="finance-row"><span>${escapeHtml(cat)}</span><span class="finance-amount fin-income">+$${total.toLocaleString('es-AR')}</span></div>`).join('') : `<div class="empty-state" style="padding:12px 0"><div class="empty-desc">Sin ingresos cargados</div></div>`;
     }
     if (egrCatEl) {
       const rows = byCat('egreso');
-      egrCatEl.innerHTML = rows.length ? rows.map(([cat, total]) => `<div class="finance-row"><span>${cat}</span><span class="finance-amount fin-expense">-$${total.toLocaleString('es-AR')}</span></div>`).join('') : `<div class="empty-state" style="padding:12px 0"><div class="empty-desc">Sin egresos cargados</div></div>`;
+      egrCatEl.innerHTML = rows.length ? rows.map(([cat, total]) => `<div class="finance-row"><span>${escapeHtml(cat)}</span><span class="finance-amount fin-expense">-$${total.toLocaleString('es-AR')}</span></div>`).join('') : `<div class="empty-state" style="padding:12px 0"><div class="empty-desc">Sin egresos cargados</div></div>`;
     }
   }
 
@@ -3771,9 +3788,9 @@
         const saldo = Number(m.saldo) || 0;
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${m.fecha}</td>
-          <td style="font-size:13px">${m.description}</td>
-          <td><span class="mov-badge" style="background:${getCatColor(m.cat)}22;color:${getCatColor(m.cat)}">${m.cat}</span></td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(m.fecha)}</td>
+          <td style="font-size:13px">${escapeHtml(m.description)}</td>
+          <td><span class="mov-badge" style="background:${getCatColor(m.cat)}22;color:${getCatColor(m.cat)}">${escapeHtml(m.cat)}</span></td>
           <td><span class="mov-badge" style="background:${isIng?'rgba(57,217,138,0.1)':'rgba(255,77,109,0.1)'};color:${isIng?'var(--green)':'var(--red)'}">${isIng?'Ingreso':'Egreso'}</span></td>
           <td style="text-align:right;font-family:var(--mono);font-weight:700;color:${isIng?'var(--green)':'var(--red)'}">${isIng?'+':''}$${Math.abs(monto).toLocaleString('es-AR')}</td>
           <td style="text-align:right;font-family:var(--mono);font-size:11px;color:${saldo>=0?'var(--text)':'var(--red)'}">${saldo>=0?'+':''}$${saldo.toLocaleString('es-AR')}</td>
