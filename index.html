@@ -3462,6 +3462,34 @@
     }
   }
 
+  async function deleteProject(id) {
+    const p = projectById(id);
+    if (!p) return;
+    if (!confirm(`¿Eliminar el proyecto "${p.name}"? Esta acción no se puede deshacer. Las tareas y etapas vinculadas también se van a eliminar.`)) return;
+    try {
+      const taskIds = DB.tasks.filter(t => t.project_id === id).map(t => t.id);
+      if (taskIds.length) {
+        await supabaseClient.from('task_dependencies').delete().in('task_id', taskIds);
+        await supabaseClient.from('task_dependencies').delete().in('depends_on_id', taskIds);
+        await supabaseClient.from('tasks').delete().eq('project_id', id);
+      }
+      await supabaseClient.from('phases').delete().eq('project_id', id);
+      await supabaseClient.from('notes').update({ project_id: null }).eq('project_id', id);
+      await supabaseClient.from('documents').update({ project_id: null }).eq('project_id', id);
+      const { error } = await supabaseClient.from('projects').delete().eq('id', id);
+      if (error) throw error;
+      DB.tasks = DB.tasks.filter(t => t.project_id !== id);
+      DB.phases = DB.phases.filter(ph => ph.project_id !== id);
+      DB.notes.forEach(n => { if (n.project_id === id) n.project_id = null; });
+      DB.documents.forEach(d => { if (d.project_id === id) d.project_id = null; });
+      DB.projects = DB.projects.filter(pr => pr.id !== id);
+      closeProjectModal();
+      renderAllTasks(); renderHome();
+    } catch (err) {
+      alert('Error eliminando proyecto: ' + err.message);
+    }
+  }
+
   function renderProjectDetail(id) {
     const wrap = document.getElementById('projectDetailWrap');
     const p = projectById(id);
@@ -3472,7 +3500,10 @@
       <div class="card">
         <div class="section-header">
           <input class="pd-title-input" value="${escapeHtml(p.name)}" onchange="pdSaveField('${p.id}','name',this.value)">
-          <button class="btn btn-ghost" onclick="closeProjectModal()">Cerrar</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" style="color:var(--red)" onclick="deleteProject('${p.id}')">Eliminar</button>
+            <button class="btn btn-ghost" onclick="closeProjectModal()">Cerrar</button>
+          </div>
         </div>
         <div class="pd-meta-row">
           <div class="pd-meta-field">
