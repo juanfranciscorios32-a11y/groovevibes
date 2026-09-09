@@ -470,7 +470,7 @@
   }
 
   .task-check.done { background: var(--green); border-color: var(--green); }
-  .task-check.done::after { content: '✓'; color: #0a0a0f; font-size: 10px; font-weight: 700; }
+  .task-check.done::after { content: ''; color: #0a0a0f; font-size: 10px; font-weight: 700; }
 
   .task-text { font-size: 13px; flex: 1; line-height: 1.4; }
   .task-text.done { text-decoration: line-through; color: var(--muted); }
@@ -1802,58 +1802,58 @@
     <nav class="nav-section">
       <div class="nav-label">Principal</div>
       <div class="nav-item active" onclick="setPanel('home')">
-        <span class="nav-icon">⊞</span> Dashboard
+        Dashboard
       </div>
       <div class="nav-item" onclick="setPanel('calendar')">
-        <span class="nav-icon">◫</span> Calendario
+        Calendario
       </div>
     </nav>
 
     <nav class="nav-section">
       <div class="nav-label">Proyectos</div>
       <div class="nav-item" onclick="setPanel('tasks')">
-        <span class="nav-icon">◻</span> Proyectos <span class="nav-badge" id="projectsBadge" style="display:none">0</span>
+        Proyectos <span class="nav-badge" id="projectsBadge" style="display:none">0</span>
       </div>
       <div class="nav-item" onclick="setPanel('todos')">
-        <span class="nav-icon">✓</span> Tareas
+        Tareas
       </div>
       <div class="nav-item" onclick="setPanel('shows')">
-        <span class="nav-icon">♪</span> Shows
+        Shows
       </div>
       <div class="nav-item" onclick="setPanel('faculty')">
-        <span class="nav-icon">◆</span> Facultad
+        Facultad
       </div>
     </nav>
 
     <nav class="nav-section">
       <div class="nav-label">Red</div>
       <div class="nav-item" onclick="setPanel('contacts')">
-        <span class="nav-icon">◎</span> Contactos
+        Contactos
       </div>
     </nav>
 
     <nav class="nav-section">
       <div class="nav-label">Personal</div>
       <div class="nav-item" onclick="setPanel('finance')">
-        <span class="nav-icon">$</span> Finanzas
+        Finanzas
       </div>
       <div class="nav-item" onclick="setPanel('habits')">
-        <span class="nav-icon">◈</span> Hábitos
+        Hábitos
       </div>
       <div class="nav-item" onclick="setPanel('goals')">
-        <span class="nav-icon">◉</span> Objetivos
+        Objetivos
       </div>
       <div class="nav-item" onclick="setPanel('notes')">
-        <span class="nav-icon">≡</span> Notas
+        Notas
       </div>
       <div class="nav-item" onclick="setPanel('settings')">
-        <span class="nav-icon">⚙</span> Configuración
+        Configuración
       </div>
     </nav>
 
     <div class="sidebar-bottom">
       <div class="user-pill">
-        <div class="avatar">●</div>
+        <div class="avatar"></div>
         <div class="user-info">
           <div class="name" id="userEmail">—</div>
           <div class="role" style="cursor:pointer;text-decoration:underline" onclick="handleLogout()">Cerrar sesión</div>
@@ -1904,7 +1904,7 @@
           <div class="card">
             <div class="section-header">
               <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Next Actions</div>
-              <div class="section-link" onclick="setPanel('tasks')">Proyectos →</div>
+              <div class="section-link" onclick="setPanel('tasks')">Proyectos</div>
             </div>
             <div id="homeNextActions"></div>
           </div>
@@ -1920,7 +1920,7 @@
                 <div class="section-dot"></div>
                 Hoy — Agenda
               </div>
-              <div class="section-link" onclick="setPanel('calendar')">Ver semana →</div>
+              <div class="section-link" onclick="setPanel('calendar')">Ver semana</div>
             </div>
             <div id="homeToday"></div>
           </div>
@@ -1935,7 +1935,7 @@
                   <div class="section-dot" style="background:var(--accent2)"></div>
                   Tareas urgentes
                 </div>
-                <div class="section-link" onclick="setPanel('todos')">Ver todas →</div>
+                <div class="section-link" onclick="setPanel('todos')">Ver todas</div>
               </div>
               <div id="homeUrgentTasks"></div>
             </div>
@@ -1947,7 +1947,7 @@
                   <div class="section-dot" style="background:var(--accent5)"></div>
                   Portfolio — Snapshot
                 </div>
-                <div class="section-link" onclick="setPanel('finance')">Ver detalle →</div>
+                <div class="section-link" onclick="setPanel('finance')">Ver detalle</div>
               </div>
               <div>
                 <div class="empty-state" style="padding:16px 0">
@@ -1968,7 +1968,7 @@
                 <div class="section-dot" style="background:var(--accent3)"></div>
                 Shows / Eventos
               </div>
-              <div class="section-link" onclick="setPanel('shows')">Gestionar →</div>
+              <div class="section-link" onclick="setPanel('shows')">Gestionar</div>
             </div>
             <div id="homeShows"></div>
           </div>
@@ -1979,7 +1979,7 @@
                 <div class="section-dot" style="background:var(--accent2)"></div>
                 Proyectos activos
               </div>
-              <div class="section-link" onclick="setPanel('tasks')">Ver todos →</div>
+              <div class="section-link" onclick="setPanel('tasks')">Ver todos</div>
             </div>
             <div id="homeActiveProjects"></div>
           </div>
@@ -1990,13 +1990,13 @@
                 <div class="section-dot" style="background:var(--accent4)"></div>
                 Hábitos
               </div>
-              <div class="section-link" onclick="setPanel('habits')">Configurar →</div>
+              <div class="section-link" onclick="setPanel('habits')">Configurar</div>
             </div>
             <div class="empty-state" style="padding:20px 0">
-              <div class="empty-icon">◈</div>
+              <div class="empty-icon"></div>
               <div class="empty-title">Sin hábitos configurados</div>
               <div class="empty-desc">Definí los hábitos que querés trackear</div>
-              <button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="setPanel('habits')">Configurar →</button>
+              <button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="setPanel('habits')">Configurar</button>
             </div>
           </div>
 
@@ -2009,9 +2009,9 @@
           <div class="section-header">
             <div class="section-title"><div class="section-dot"></div><span id="calWeekLabel">Semana</span></div>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-ghost" onclick="changeCalWeek(-1)">← Anterior</button>
+              <button class="btn btn-ghost" onclick="changeCalWeek(-1)">Anterior</button>
               <button class="btn btn-ghost" onclick="changeCalWeek(0)">Hoy</button>
-              <button class="btn btn-ghost" onclick="changeCalWeek(1)">Siguiente →</button>
+              <button class="btn btn-ghost" onclick="changeCalWeek(1)">Siguiente</button>
             </div>
           </div>
           <div class="week-hourly-wrap" id="calWeekGrid"></div>
@@ -2020,9 +2020,9 @@
           <div class="section-header">
             <div class="section-title"><div class="section-dot" style="background:var(--accent4)"></div><span id="calMonthLabel">Mes</span></div>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-ghost" onclick="changeCalMonth(-1)">← Mes anterior</button>
+              <button class="btn btn-ghost" onclick="changeCalMonth(-1)">Mes anterior</button>
               <button class="btn btn-ghost" onclick="changeCalMonth(0)">Este mes</button>
-              <button class="btn btn-ghost" onclick="changeCalMonth(1)">Mes siguiente →</button>
+              <button class="btn btn-ghost" onclick="changeCalMonth(1)">Mes siguiente</button>
             </div>
           </div>
           <div class="month-cal" id="calMonthGrid"></div>
@@ -2130,7 +2130,7 @@
           <div class="section-title" style="margin-bottom:12px"><div class="section-dot"></div>Datos del sistema</div>
           <div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:14px">Los datos se guardan en Supabase (PostgreSQL), protegidos por autenticación. Esta cuenta es de uso personal — no se permite el alta de nuevas cuentas.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-ghost" onclick="refreshAllData()">🔄 Actualizar datos</button>
+            <button class="btn btn-ghost" onclick="refreshAllData()">Actualizar datos</button>
           </div>
         </div>
 
@@ -2230,7 +2230,7 @@
         <div id="fin-inversiones" style="display:none">
           <div class="card">
             <div class="empty-state" style="padding:50px 20px">
-              <div class="empty-icon" style="font-size:34px">◐</div>
+              <div class="empty-icon" style="font-size:34px"></div>
               <div class="empty-title">Sin datos de inversiones conectados</div>
               <div class="empty-desc">Este módulo todavía no tiene una fuente de datos real en Supabase. Cuando quieras trackear portfolio acá, se puede sumar una tabla nueva.</div>
             </div>
@@ -2298,7 +2298,7 @@
         <div id="fin-proyeccion" style="display:none">
           <div class="card">
             <div class="empty-state" style="padding:50px 20px">
-              <div class="empty-icon" style="font-size:34px">◫</div>
+              <div class="empty-icon" style="font-size:34px"></div>
               <div class="empty-title">Proyección en desarrollo</div>
               <div class="empty-desc">Por ahora el flujo real (con datos de Supabase) se calcula en la pestaña "Flujo de Caja". La proyección a futuro se puede sumar más adelante.</div>
             </div>
@@ -2327,9 +2327,9 @@
             <div id="habitMonthLabel" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-ghost" onclick="changeHabitMonth(-1)">← Anterior</button>
+            <button class="btn btn-ghost" onclick="changeHabitMonth(-1)">Anterior</button>
             <button class="btn btn-ghost" onclick="changeHabitMonth(0)">Hoy</button>
-            <button class="btn btn-ghost" onclick="changeHabitMonth(1)">Siguiente →</button>
+            <button class="btn btn-ghost" onclick="changeHabitMonth(1)">Siguiente</button>
           </div>
         </div>
 
@@ -2377,7 +2377,7 @@
         <span class="ai-icon"></span>
         <input class="ai-input" id="aiInput" placeholder="Preguntale al asistente... ¿Qué debería priorizar hoy?" onkeydown="handleEnter(event)" />
       </div>
-      <button class="ai-send" onclick="sendAI()">Enviar →</button>
+      <button class="ai-send" onclick="sendAI()">Enviar</button>
     </div>
 
   </main>
@@ -2388,7 +2388,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Nuevo elemento</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()">Cerrar</button>
     </div>
     <div class="form-group">
       <label class="form-label">Tipo</label>
@@ -2410,7 +2410,7 @@
     <div id="dynamicFields"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-accent" onclick="saveNewItem()">Guardar →</button>
+      <button class="btn btn-accent" onclick="saveNewItem()">Guardar</button>
     </div>
   </div>
 </div>
@@ -2490,9 +2490,9 @@
       DB.areas = areasRes.data || [];
       DB.phases = phasesRes.data || [];
       DB.taskDependencies = depsRes.data || [];
-      console.log('✅ Datos cargados desde Supabase:', DB);
+      console.log('Datos cargados desde Supabase:', DB);
     } catch (error) {
-      console.error('❌ Error cargando datos:', error);
+      console.error('Error cargando datos:', error);
       alert('Error cargando datos desde Supabase: ' + error.message);
     }
   }
@@ -3147,14 +3147,14 @@
     const badge = document.getElementById('inboxBadge');
     if (badge) { badge.style.display = pending.length ? 'inline-block' : 'none'; badge.textContent = pending.length; }
     if (!pending.length) {
-      list.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="empty-icon">▤</div><div class="empty-title">Inbox vacío</div><div class="empty-desc">Todo procesado. Buen trabajo.</div></div>`;
+      list.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="empty-icon"></div><div class="empty-title">Inbox vacío</div><div class="empty-desc">Todo procesado. Buen trabajo.</div></div>`;
       return;
     }
     list.innerHTML = pending.map(i => `
       <div class="task-item">
         <div class="task-text">${escapeHtml(i.text)}<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDate(i.date)}</div></div>
-        <button class="btn btn-ghost" style="font-size:10.5px;padding:4px 8px" onclick="processInboxItem('${i.id}')">→ Procesar a tarea</button>
-        <button class="btn btn-ghost" style="font-size:10.5px;padding:4px 8px" onclick="deleteInboxItem('${i.id}')">✕</button>
+        <button class="btn btn-ghost" style="font-size:10.5px;padding:4px 8px" onclick="processInboxItem('${i.id}')">Procesar a tarea</button>
+        <button class="btn btn-ghost" style="font-size:10.5px;padding:4px 8px" onclick="deleteInboxItem('${i.id}')">Eliminar</button>
       </div>`).join('');
   }
 
@@ -3225,14 +3225,14 @@
     if (badge) { const active = DB.projects.filter(p => !['finalizado','cancelado'].includes(p.status)).length; badge.style.display = active ? 'inline-block':'none'; badge.textContent = active; }
 
     if (!list.length) {
-      gridEl.innerHTML = `<div class="empty-state" style="padding:60px 20px;grid-column:1/-1"><div class="empty-icon" style="font-size:40px">◻</div><div class="empty-title">Sin proyectos en esta categoría</div><button class="btn btn-accent" style="margin-top:18px" onclick="npOpen()">+ Crear proyecto</button></div>`;
+      gridEl.innerHTML = `<div class="empty-state" style="padding:60px 20px;grid-column:1/-1"><div class="empty-icon" style="font-size:40px"></div><div class="empty-title">Sin proyectos en esta categoría</div><button class="btn btn-accent" style="margin-top:18px" onclick="npOpen()">+ Crear proyecto</button></div>`;
     } else {
       gridEl.innerHTML = list.map(p => {
         const pending = tasksOf(p.id).filter(t => !t.done);
         return `
         <div class="project-card ${p.type}" onclick="selectProject('${p.id}')">
           <div class="proj-top">
-            <span class="proj-emoji">${projectEmoji(p.type)}</span>
+            
             <span class="proj-status-dot" style="background:${statusColor(p.status)}" title="${PROJECT_STATUS[p.status]||p.status}"></span>
           </div>
           <div class="proj-name">${escapeHtml(p.name)}</div>
@@ -3246,7 +3246,6 @@
     if (selectedProjectId) renderProjectDetail(selectedProjectId);
   }
 
-  function projectEmoji(type) { return { show:'♪', produccion:'▥', diseno:'◐', acustica:'◑', facultad:'◆', agencia:'▦', comercial:'◈', personal:'◉', otro:'●' }[type] || '●'; }
   function statusColor(status) { return { idea:'var(--muted)', planificacion:'var(--accent4)', en_desarrollo:'var(--accent2)', esperando_respuesta:'var(--accent5)', en_ejecucion:'var(--accent)', finalizado:'var(--green)', cancelado:'var(--red)' }[status] || 'var(--muted)'; }
 
   function selectProject(id) {
@@ -3262,9 +3261,9 @@
     return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">' + phases.map(ph => {
       const clickable = ph.status === 'activa';
       const style = clickable ? 'cursor:pointer;border-color:var(--accent)' : (ph.status === 'bloqueada' ? 'opacity:0.5' : '');
-      const icon = ph.status === 'completada' ? '✓ ' : (ph.status === 'bloqueada' ? '🔒 ' : '▶ ');
+      const suffix = ph.status === 'completada' ? ' (Completada)' : (ph.status === 'bloqueada' ? ' (Bloqueada)' : '');
       const onclick = clickable ? ` onclick="completePhase('${ph.id}')"` : '';
-      return `<span class="proj-task-chip" style="${style}"${onclick}>${icon}${escapeHtml(ph.name)}</span>`;
+      return `<span class="proj-task-chip" style="${style}"${onclick}>${escapeHtml(ph.name)}${suffix}</span>`;
     }).join('') + '</div>';
   }
 
@@ -3302,7 +3301,7 @@
     return `<div class="task-item">
       <div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div>
       <div class="task-text ${t.done?'done':''}">${escapeHtml(t.title)}
-        ${dateLabel ? `<div class="qa-date-chip">${dateLabel}${t.is_recurring?' · 🔁':''}</div>` : ''}
+        ${dateLabel ? `<div class="qa-date-chip">${dateLabel}${t.is_recurring?' · Recurrente':''}</div>` : ''}
       </div>
     </div>`;
   }
@@ -3310,15 +3309,15 @@
   function qaAddRowHtml(projectId, phaseId, blockId) {
     return `
       <div class="qa-block" id="${blockId}" data-project="${projectId}" data-phase="${phaseId || ''}">
-        <div class="qa-closed" onclick="qaOpen('${blockId}')">＋ Añadir una tarea</div>
+        <div class="qa-closed" onclick="qaOpen('${blockId}')">+ Añadir una tarea</div>
         <div class="qa-open" style="display:none">
           <input type="text" class="qa-input" placeholder="Título de la tarea" onkeydown="qaKeydown(event,'${blockId}')">
           <div class="qa-toolbar">
             <button type="button" class="qa-chip" onclick="qaSetDate('${blockId}','today')">Hoy</button>
             <button type="button" class="qa-chip" onclick="qaSetDate('${blockId}','tomorrow')">Mañana</button>
-            <button type="button" class="qa-icon-btn" title="Elegir fecha" onclick="qaPickDate('${blockId}')">📅</button>
+            <button type="button" class="qa-chip" title="Elegir fecha" onclick="qaPickDate('${blockId}')">Fecha</button>
             <input type="date" id="${blockId}_date" style="display:none" onchange="qaSetDate('${blockId}','custom')">
-            <button type="button" class="qa-icon-btn" id="${blockId}_repeat" title="Repetir semanalmente" onclick="qaToggleRepeat('${blockId}')">🔁</button>
+            <button type="button" class="qa-chip" id="${blockId}_repeat" title="Repetir semanalmente" onclick="qaToggleRepeat('${blockId}')">Repetir</button>
             <span class="qa-selected-date" id="${blockId}_label"></span>
             <span style="flex:1"></span>
             <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="qaCancel('${blockId}')">Cancelar</button>
@@ -3340,7 +3339,7 @@
         ${open.map(qaTaskRow).join('')}
         ${qaAddRowHtml(p.id, phaseId, bId)}
         ${done.length ? `
-          <div class="qa-completed-toggle" onclick="qaToggleCompleted('${bId}')"><span id="${bId}_arrow">▶</span> Completadas (${done.length})</div>
+          <div class="qa-completed-toggle" onclick="qaToggleCompleted('${bId}')" id="${bId}_toggle" data-count="${done.length}">Mostrar completadas (${done.length})</div>
           <div class="qa-completed-list" id="${bId}_done" style="display:none">${done.map(qaTaskRow).join('')}</div>` : ''}
       </div>`;
     };
@@ -3393,7 +3392,7 @@
     if (kind === 'today') b.querySelector('.qa-chip')?.classList.add('active');
     if (kind === 'tomorrow') b.querySelectorAll('.qa-chip')[1]?.classList.add('active');
     const label = document.getElementById(blockId+'_label');
-    if (label) label.textContent = d ? '📅 ' + qaFriendlyDate(d) : '';
+    if (label) label.textContent = d ? qaFriendlyDate(d) : '';
   }
 
   function qaToggleRepeat(blockId) {
@@ -3407,11 +3406,14 @@
 
   function qaToggleCompleted(blockId) {
     const list = document.getElementById(blockId+'_done');
-    const arrow = document.getElementById(blockId+'_arrow');
+    const toggle = document.getElementById(blockId+'_toggle');
     if (!list) return;
     const isOpen = list.style.display !== 'none';
     list.style.display = isOpen ? 'none' : 'block';
-    if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
+    if (toggle) {
+      const count = toggle.dataset.count;
+      toggle.textContent = isOpen ? `Mostrar completadas (${count})` : `Ocultar completadas (${count})`;
+    }
   }
 
   async function qaSave(blockId) {
@@ -3452,7 +3454,7 @@
       <div class="card">
         <div class="section-header">
           <input class="pd-title-input" value="${escapeHtml(p.name)}" onchange="pdSaveField('${p.id}','name',this.value)">
-          <button class="btn btn-ghost" onclick="selectedProjectId=null;renderProjects()">Cerrar ✕</button>
+          <button class="btn btn-ghost" onclick="selectedProjectId=null;renderProjects()">Cerrar</button>
         </div>
         <div class="pd-meta-row">
           <div class="pd-meta-field">
@@ -3538,7 +3540,7 @@
     const pending = sortTasksPriority(DB.tasks.filter(t => !t.done));
     const done = DB.tasks.filter(t => t.done).sort((a,b) => (b.due_date||b.scheduled_date||'').localeCompare(a.due_date||a.scheduled_date||''));
     const sorted = pending.concat(done);
-    if (!sorted.length) { wrap.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon">◻</div><div class="empty-title">Sin tareas</div></div>`; return; }
+    if (!sorted.length) { wrap.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon"></div><div class="empty-title">Sin tareas</div></div>`; return; }
     wrap.innerHTML = sorted.map(t => {
       const proj = projectById(t.project_id);
       const area = areaById(t.area_id) || (proj ? areaById(proj.area_id) : null);
@@ -3550,7 +3552,7 @@
       <div class="task-item">
         <div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div>
         <div class="task-text ${t.done?'done':''}">${escapeHtml(t.title)}
-          <div style="font-size:10.5px;color:${overdue?'var(--red)':'var(--muted)'};margin-top:2px">${fmtDate(displayDate)}${proj ? ' · ' + escapeHtml(proj.name) : ''}${area ? ' · ' + escapeHtml(area.name) : ''}${phase ? ' · ' + escapeHtml(phase.name) : ''}${blocker ? ' · 🔒 bloqueada por: ' + escapeHtml(blocker.title) : ''}</div>
+          <div style="font-size:10.5px;color:${overdue?'var(--red)':'var(--muted)'};margin-top:2px">${fmtDate(displayDate)}${proj ? ' · ' + escapeHtml(proj.name) : ''}${area ? ' · ' + escapeHtml(area.name) : ''}${phase ? ' · ' + escapeHtml(phase.name) : ''}${blocker ? ' · bloqueada por: ' + escapeHtml(blocker.title) : ''}</div>
         </div>
         <span class="task-priority p-${t.priority==='alta'?'high':t.priority==='baja'?'low':'med'}">${t.priority}</span>
       </div>`;
@@ -3571,7 +3573,7 @@
     let shows = DB.projects.filter(p => p.type === 'show');
     if (showStageFilter !== 'todos') shows = shows.filter(p => p.booking_stage === showStageFilter);
     if (!shows.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">♪</div><div class="empty-title">Sin shows en esta etapa</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin shows en esta etapa</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div></td></tr>`;
       return;
     }
     tbody.innerHTML = shows.map(p => {
@@ -3593,12 +3595,12 @@
   function renderFaculty() {
     const wrap = document.getElementById('facultyList');
     if (!wrap) return;
-    if (!DB.faculty.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">◆</div><div class="empty-title">Sin materias cargadas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Materia')">+ Nueva materia</button></div></div>`; return; }
+    if (!DB.faculty.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin materias cargadas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Materia')">+ Nueva materia</button></div></div>`; return; }
     wrap.innerHTML = `<div class="projects-grid">` + DB.faculty.map(f => {
       const d = f.deadline ? daysUntil(f.deadline) : null;
       const proj = projectById(f.project_id);
       return `<div class="project-card" onclick="${proj ? `setPanel('tasks');selectProject('${proj.id}')` : ''}">
-        <div class="proj-top"><span class="proj-emoji">◆</span><span class="proj-status-dot" style="background:${d===null?'var(--muted)':d<0?'var(--red)':d<=3?'var(--accent5)':'var(--accent4)'}"></span></div>
+        <div class="proj-top"><span class="proj-status-dot" style="background:${d===null?'var(--muted)':d<0?'var(--red)':d<=3?'var(--accent5)':'var(--accent4)'}"></span></div>
         <div class="proj-name">${escapeHtml(f.subject)}</div>
         <div class="proj-sub">${escapeHtml(f.professor) || 'Sin profesor'} · entrega ${fmtDate(f.deadline)}${d!==null ? ' (' + (d<0?'vencido':'en '+d+'d') + ')' : ''}</div>
         <div class="proj-tasks"><span class="proj-task-chip">${escapeHtml(f.objective) || 'Sin objetivo'}</span></div>
@@ -3614,7 +3616,7 @@
     if (!wrap) return;
     const q = (document.getElementById('contactSearch')?.value || '').toLowerCase();
     const list = DB.contacts.filter(c => !q || c.name.toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q));
-    if (!list.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">◎</div><div class="empty-title">Sin contactos</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Contacto')">+ Nuevo contacto</button></div></div>`; return; }
+    if (!list.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin contactos</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Contacto')">+ Nuevo contacto</button></div></div>`; return; }
     wrap.innerHTML = `<div class="card"><div style="display:flex;flex-direction:column;gap:2px">` + list.map(c => {
       const projCount = DB.projects.filter(p => tasksOf(p.id).some(t => t.contact_id === c.id)).length;
       return `<div class="task-item" onclick="selectContact('${c.id}')">
@@ -3633,7 +3635,7 @@
     wrap.innerHTML = `<div class="card">
       <div class="section-header">
         <div class="section-title"><div class="section-dot"></div>${escapeHtml(c.name)}</div>
-        <button class="btn btn-ghost" onclick="document.getElementById('contactDetailWrap').innerHTML=''">Cerrar ✕</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('contactDetailWrap').innerHTML=''">Cerrar</button>
       </div>
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">${escapeHtml(c.role)||''} ${c.company?'· '+escapeHtml(c.company):''} ${c.email?'· '+escapeHtml(c.email):''} ${c.phone?'· '+escapeHtml(c.phone):''}</div>
       <div class="section-title" style="font-size:12px;margin-bottom:8px">Tareas vinculadas (${relatedTasks.length})</div>
@@ -3646,26 +3648,26 @@
      ========================================================= */
   function renderOrgs() {
     const wrap = document.getElementById('orgsList'); if (!wrap) return;
-    if (!DB.organizations.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">▦</div><div class="empty-title">Sin organizaciones</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Organización')">+ Nueva</button></div></div>`; return; }
+    if (!DB.organizations.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin organizaciones</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Organización')">+ Nueva</button></div></div>`; return; }
     wrap.innerHTML = `<div class="projects-grid">` + DB.organizations.map(o => {
       const projCount = DB.projects.filter(p => p.org_id === o.id).length;
-      return `<div class="project-card"><div class="proj-top"><span class="proj-emoji">▦</span></div><div class="proj-name">${escapeHtml(o.name)}</div><div class="proj-sub">${escapeHtml(o.type)} ${o.city ? '· '+escapeHtml(o.city) : ''}</div><div class="proj-tasks"><span class="proj-task-chip">${projCount} proyecto(s)</span></div></div>`;
+      return `<div class="project-card"><div class="proj-name">${escapeHtml(o.name)}</div><div class="proj-sub">${escapeHtml(o.type)} ${o.city ? '· '+escapeHtml(o.city) : ''}</div><div class="proj-tasks"><span class="proj-task-chip">${projCount} proyecto(s)</span></div></div>`;
     }).join('') + `</div>`;
   }
 
   function renderArtists() {
     const wrap = document.getElementById('artistsList'); if (!wrap) return;
-    if (!DB.artists.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">★</div><div class="empty-title">Sin artistas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Artista')">+ Nuevo</button></div></div>`; return; }
+    if (!DB.artists.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin artistas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Artista')">+ Nuevo</button></div></div>`; return; }
     wrap.innerHTML = `<div class="projects-grid">` + DB.artists.map(a => {
       const c = contactById(a.contact_id);
       const shows = DB.projects.filter(p => p.artist_id === a.id);
-      return `<div class="project-card"><div class="proj-top"><span class="proj-emoji">★</span></div><div class="proj-name">${escapeHtml(a.name)}</div><div class="proj-sub">${escapeHtml(a.genre)||'—'} ${a.country?'· '+escapeHtml(a.country):''} ${a.fee?'· $'+a.fee:''}</div><div class="proj-tasks">${c?`<span class="proj-task-chip">Mgmt: ${escapeHtml(c.name)}</span>`:''}<span class="proj-task-chip">${shows.length} proyecto(s)</span></div></div>`;
+      return `<div class="project-card"><div class="proj-name">${escapeHtml(a.name)}</div><div class="proj-sub">${escapeHtml(a.genre)||'—'} ${a.country?'· '+escapeHtml(a.country):''} ${a.fee?'· $'+a.fee:''}</div><div class="proj-tasks">${c?`<span class="proj-task-chip">Mgmt: ${escapeHtml(c.name)}</span>`:''}<span class="proj-task-chip">${shows.length} proyecto(s)</span></div></div>`;
     }).join('') + `</div>`;
   }
 
   function renderDocs() {
     const wrap = document.getElementById('docsList'); if (!wrap) return;
-    if (!DB.documents.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">▣</div><div class="empty-title">Sin documentos</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Documento')">+ Nuevo</button></div></div>`; return; }
+    if (!DB.documents.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin documentos</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Documento')">+ Nuevo</button></div></div>`; return; }
     wrap.innerHTML = `<div class="card"><div style="display:flex;flex-direction:column;gap:2px">` + DB.documents.map(d => {
       const p = projectById(d.project_id);
       return `<div class="task-item"><div class="task-text">${escapeHtml(d.title)}<div style="font-size:10.5px;color:var(--muted)">${escapeHtml(d.type)}${p?' · '+escapeHtml(p.name):''} · ${fmtDate(d.date)}</div></div></div>`;
@@ -3674,7 +3676,7 @@
 
   function renderNotes() {
     const wrap = document.getElementById('notesListWrap'); if (!wrap) return;
-    if (!DB.notes.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">≡</div><div class="empty-title">Sin notas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Nota')">+ Nueva nota</button></div></div>`; return; }
+    if (!DB.notes.length) { wrap.innerHTML = `<div class="card"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin notas</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Nota')">+ Nueva nota</button></div></div>`; return; }
     wrap.innerHTML = `<div class="projects-grid">` + DB.notes.slice().reverse().map(n => {
       const proj = projectById(n.project_id);
       return `<div class="project-card"><div class="proj-name">${escapeHtml(n.title)}</div><div class="proj-sub" style="margin-bottom:8px">${escapeHtml(n.content)||''}</div><div class="proj-tasks">${proj ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('tasks');selectProject('${proj.id}')">${escapeHtml(proj.name)}</span>` : ''}${(n.tags||[]).map(t=>`<span class="proj-task-chip">#${escapeHtml(t)}</span>`).join('')}</div></div>`;
@@ -3683,7 +3685,7 @@
 
   function renderGoals() {
     const wrap = document.getElementById('goalsList'); if (!wrap) return;
-    if (!DB.goals.length) { wrap.innerHTML = `<div class="empty-state" style="padding:40px 0"><div class="empty-icon">◉</div><div class="empty-title">Sin objetivos cargados</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Objetivo')">+ Definir objetivo</button></div>`; return; }
+    if (!DB.goals.length) { wrap.innerHTML = `<div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin objetivos cargados</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Objetivo')">+ Definir objetivo</button></div>`; return; }
     wrap.innerHTML = DB.goals.map(g => `
       <div class="goal-item">
         <div class="goal-header"><span class="goal-name">${escapeHtml(g.name)}</span><span class="goal-pct">${g.pct}%</span></div>
@@ -3710,14 +3712,12 @@
     if (gridWrap) gridWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  const CAL_TYPE_ICON = { task: '✓', show: '🎤', faculty: '🎓', personal: '•' };
-
   function calEventChip(e, compact) {
     const clickable = !!e.projectId;
     const onclick = clickable ? ` onclick="event.stopPropagation();setPanel('tasks');selectProject('${e.projectId}')"` : '';
     const cls = compact ? 'month-day-chip' : 'week-event-chip';
     const safeTitle = escapeHtml(e.title);
-    return `<div class="${cls}${clickable?' clickable':''}" style="border-left-color:${e.color}"${onclick} title="${safeTitle}">${CAL_TYPE_ICON[e.type]||''} ${safeTitle}</div>`;
+    return `<div class="${cls}${clickable?' clickable':''}" style="border-left-color:${e.color}"${onclick} title="${safeTitle}">${safeTitle}</div>`;
   }
 
   const WEEK_HOUR_PX = 48;
@@ -3815,7 +3815,7 @@
         const timeLabel = hm(e.startTime) + (e.endTime ? '–' + hm(e.endTime) : '');
         const safeTitle = escapeHtml(e.title);
         return `<div class="whb-event${clickable ? ' clickable' : ''}" style="top:${top}px;height:${height}px;left:${leftPct}%;width:calc(${widthPct}% - 4px);border-left-color:${e.color}"${onclick} title="${safeTitle}">
-          <div class="whb-event-title">${CAL_TYPE_ICON[e.type] || ''} ${safeTitle}</div>
+          <div class="whb-event-title">${safeTitle}</div>
           <div class="whb-event-time">${timeLabel}</div>
         </div>`;
       }).join('');
@@ -3893,7 +3893,7 @@
     if (agendaEl) {
       const upcoming = events.filter(e => daysUntil(e.date) >= -3).slice(0, 12);
       if (!upcoming.length) {
-        agendaEl.innerHTML = `<div class="empty-state"><div class="empty-icon">◫</div><div class="empty-title">Sin eventos</div><div class="empty-desc">Agregá tareas, shows o entregas de facultad y van a aparecer acá automáticamente</div></div>`;
+        agendaEl.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-title">Sin eventos</div><div class="empty-desc">Agregá tareas, shows o entregas de facultad y van a aparecer acá automáticamente</div></div>`;
       } else {
         agendaEl.innerHTML = upcoming.map(e => `
           <div class="time-block">
@@ -3928,16 +3928,16 @@
     }
 
     const todayEl = document.getElementById('homeToday');
-    if (todayEl) todayEl.innerHTML = today.length ? today.map(t => `<div class="time-block"><div class="time-bar current"></div><div class="time-content"><div class="time-title">${escapeHtml(t.title)}</div><div class="time-meta">${escapeHtml(projectById(t.project_id)?.name) || 'Sin proyecto'}</div></div></div>`).join('') : `<div class="empty-state"><div class="empty-icon">◫</div><div class="empty-title">Sin eventos para hoy</div><div class="empty-desc">Agregá tus reuniones, shows, calls y tareas del día usando el botón + Nuevo</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Tarea')">+ Agregar evento</button></div>`;
+    if (todayEl) todayEl.innerHTML = today.length ? today.map(t => `<div class="time-block"><div class="time-bar current"></div><div class="time-content"><div class="time-title">${escapeHtml(t.title)}</div><div class="time-meta">${escapeHtml(projectById(t.project_id)?.name) || 'Sin proyecto'}</div></div></div>`).join('') : `<div class="empty-state"><div class="empty-icon"></div><div class="empty-title">Sin eventos para hoy</div><div class="empty-desc">Agregá tus reuniones, shows, calls y tareas del día usando el botón + Nuevo</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Tarea')">+ Agregar evento</button></div>`;
 
     const urgentEl = document.getElementById('homeUrgentTasks');
-    if (urgentEl) { const urgent = sortTasksPriority(pendingTasks).slice(0,5); urgentEl.innerHTML = urgent.length ? urgent.map(t => `<div class="task-item"><div class="task-check" onclick="toggleDbTask('${t.id}')"></div><div class="task-text">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}</div></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:22px">◻</div><div class="empty-title">Sin tareas urgentes</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Tarea')">+ Nueva tarea</button></div>`; }
+    if (urgentEl) { const urgent = sortTasksPriority(pendingTasks).slice(0,5); urgentEl.innerHTML = urgent.length ? urgent.map(t => `<div class="task-item"><div class="task-check" onclick="toggleDbTask('${t.id}')"></div><div class="task-text">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}</div></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:22px"></div><div class="empty-title">Sin tareas urgentes</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Tarea')">+ Nueva tarea</button></div>`; }
 
     const showsEl = document.getElementById('homeShows');
-    if (showsEl) { const shows = DB.projects.filter(p => p.type==='show' && !['finalizado','cancelado'].includes(p.status)).slice(0,3); showsEl.innerHTML = shows.length ? shows.map(p => `<div class="show-item" onclick="setPanel('tasks');selectProject('${p.id}')"><div class="show-header"><span class="show-title">${escapeHtml(p.name)}</span><span class="show-status status-${p.booking_stage==='confirmado'?'confirmed':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></div><div class="show-meta"><span>${fmtDate(p.deadline)}</span></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon">♪</div><div class="empty-title">Sin shows cargados</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div>`; }
+    if (showsEl) { const shows = DB.projects.filter(p => p.type==='show' && !['finalizado','cancelado'].includes(p.status)).slice(0,3); showsEl.innerHTML = shows.length ? shows.map(p => `<div class="show-item" onclick="setPanel('tasks');selectProject('${p.id}')"><div class="show-header"><span class="show-title">${escapeHtml(p.name)}</span><span class="show-status status-${p.booking_stage==='confirmado'?'confirmed':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></div><div class="show-meta"><span>${fmtDate(p.deadline)}</span></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon"></div><div class="empty-title">Sin shows cargados</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div>`; }
 
     const activeEl = document.getElementById('homeActiveProjects');
-    if (activeEl) activeEl.innerHTML = activeProjects.length ? activeProjects.slice(0,5).map(p => `<div class="goal-item" onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer"><div class="goal-header"><span class="goal-name">${projectEmoji(p.type)} ${escapeHtml(p.name)}</span><span class="goal-pct">${p.progress||0}%</span></div><div class="goal-bar"><div class="goal-fill" style="width:${p.progress||0}%;background:${statusColor(p.status)}"></div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin proyectos activos</div>`;
+    if (activeEl) activeEl.innerHTML = activeProjects.length ? activeProjects.slice(0,5).map(p => `<div class="goal-item" onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer"><div class="goal-header"><span class="goal-name">${escapeHtml(p.name)}</span><span class="goal-pct">${p.progress||0}%</span></div><div class="goal-bar"><div class="goal-fill" style="width:${p.progress||0}%;background:${statusColor(p.status)}"></div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin proyectos activos</div>`;
   }
 
   function renderAll() {
@@ -4160,7 +4160,7 @@
       html += `<th><div class="ht-day-head ${cls}"><div class="ht-day-num">${String(d).padStart(2,'0')}</div><div class="ht-day-name">${DAY_NAMES[dow]}</div></div></th>`;
     }
 
-    html += '<th class="ht-stat-col">✓ / días</th><th class="ht-stat-col">%</th></tr></thead><tbody>';
+    html += '<th class="ht-stat-col">Días</th><th class="ht-stat-col">%</th></tr></thead><tbody>';
 
     HABITS.forEach(h => {
       let count = 0;
@@ -4183,7 +4183,7 @@
         ].filter(Boolean).join(' ');
 
         const onclick = isFuture ? '' : `onclick="toggleHabit(${htYear},${htMonth},'${h.id}',${d})"`;
-        html += `<td><div class="${cls}" ${onclick}>${checked ? '✓' : ''}</div></td>`;
+        html += `<td><div class="${cls}" ${onclick}></div></td>`;
       }
 
       const total = isCurrent ? todayD : daysInMonth;
