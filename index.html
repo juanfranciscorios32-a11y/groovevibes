@@ -1177,6 +1177,8 @@
 
   .modal-close:hover { color: var(--text); border-color: var(--border-bright); }
 
+  .pd-modal { width: 680px; max-width: 92vw; max-height: 85vh; overflow-y: auto; }
+
   .form-group { margin-bottom: 14px; }
 
   .form-label {
@@ -2059,7 +2061,6 @@
         </div>
         <div class="context-tabs" id="projTypeTabs"></div>
         <div class="projects-grid" id="projectsGrid"></div>
-        <div id="projectDetailWrap" style="margin-top:16px"></div>
       </div>
 
       <!-- TAREAS (TODOS) PANEL -->
@@ -2412,6 +2413,13 @@
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-accent" onclick="saveNewItem()">Guardar</button>
     </div>
+  </div>
+</div>
+
+<!-- DETALLE DE PROYECTO (ventana superpuesta) -->
+<div class="modal-overlay" id="projectModalOverlay" onclick="closeProjectModalOutside(event)">
+  <div class="modal pd-modal">
+    <div id="projectDetailWrap"></div>
   </div>
 </div>
 
@@ -3251,8 +3259,18 @@
   function selectProject(id) {
     selectedProjectId = id;
     renderProjectDetail(id);
-    const wrap = document.getElementById('projectDetailWrap');
-    if (wrap) setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    document.getElementById('projectModalOverlay').classList.add('open');
+  }
+
+  function closeProjectModal() {
+    selectedProjectId = null;
+    document.getElementById('projectModalOverlay').classList.remove('open');
+    document.getElementById('projectDetailWrap').innerHTML = '';
+    renderProjects();
+  }
+
+  function closeProjectModalOutside(e) {
+    if (e.target === document.getElementById('projectModalOverlay')) closeProjectModal();
   }
 
   function renderPhaseChips(projectId) {
@@ -3454,7 +3472,7 @@
       <div class="card">
         <div class="section-header">
           <input class="pd-title-input" value="${escapeHtml(p.name)}" onchange="pdSaveField('${p.id}','name',this.value)">
-          <button class="btn btn-ghost" onclick="selectedProjectId=null;renderProjects()">Cerrar</button>
+          <button class="btn btn-ghost" onclick="closeProjectModal()">Cerrar</button>
         </div>
         <div class="pd-meta-row">
           <div class="pd-meta-field">
