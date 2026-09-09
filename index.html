@@ -475,6 +475,43 @@
   .task-text { font-size: 13px; flex: 1; line-height: 1.4; }
   .task-text.done { text-decoration: line-through; color: var(--muted); }
 
+  /* QUICK ADD TASKS — checklist simple por proyecto/etapa */
+  .qa-group { margin-bottom: 14px; }
+  .qa-group:last-child { margin-bottom: 0; }
+  .qa-group-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 10px 0 4px; }
+  .qa-date-chip { display: inline-block; margin-top: 3px; font-size: 10px; color: var(--accent4); background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; }
+  .qa-block { margin-top: 4px; }
+  .qa-closed { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--accent4); cursor: pointer; padding: 6px 0; }
+  .qa-closed:hover { opacity: 0.8; }
+  .qa-open { background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 8px; padding: 8px; }
+  .qa-input { width: 100%; border: none; background: transparent; color: var(--text); font-size: 13px; font-family: var(--body); padding: 4px 2px 8px; outline: none; }
+  .qa-toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .qa-chip { font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; cursor: pointer; }
+  .qa-chip:hover { color: var(--text); }
+  .qa-chip.active { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+  .qa-icon-btn { font-size: 13px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); }
+  .qa-icon-btn:hover { color: var(--text); }
+  .qa-icon-btn.active { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+  .qa-selected-date { font-size: 11px; color: var(--accent4); }
+  .qa-completed-toggle { font-size: 11px; color: var(--muted); cursor: pointer; padding: 8px 0 2px; display: flex; align-items: center; gap: 6px; }
+  .qa-completed-toggle:hover { color: var(--text); }
+  .qa-completed-list { padding-top: 2px; }
+
+  /* NUEVO PROYECTO — formulario inline mínimo */
+  .np-form { margin-bottom: 16px; }
+  .np-form .form-row { grid-template-columns: 1.6fr 1fr 1fr; }
+
+  /* DETALLE DE PROYECTO — estilo Keep, orden estricto */
+  .pd-title-input { font-family: var(--display); font-size: 20px; font-weight: 700; background: transparent; border: none; color: var(--text); flex: 1; outline: none; padding: 4px 2px; border-radius: 4px; }
+  .pd-title-input:focus { background: var(--surface2); }
+  .pd-meta-row { display: flex; gap: 24px; margin: 12px 0 16px; flex-wrap: wrap; }
+  .pd-meta-field { display: flex; flex-direction: column; gap: 4px; }
+  .pd-meta-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .pd-meta-field .form-input { width: auto; min-width: 150px; }
+  .pd-description { width: 100%; min-height: 60px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); font-family: var(--body); font-size: 13px; resize: vertical; margin: 4px 0 18px; outline: none; }
+  .pd-description:focus { border-color: var(--border-bright); }
+  .pd-tasks-title { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; }
+
   .task-priority {
     font-family: var(--mono);
     font-size: 9px;
@@ -2000,7 +2037,25 @@
       <div class="panel" id="panel-tasks">
         <div class="section-header" style="margin-bottom:16px">
           <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Proyectos y áreas</div>
-          <button class="btn btn-accent" onclick="openModal('Proyecto')">+ Nuevo proyecto</button>
+          <button class="btn btn-accent" id="npToggleBtn" onclick="npOpen()">+ Nuevo Proyecto</button>
+        </div>
+        <div class="card np-form" id="npForm" style="display:none">
+          <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="np_title" placeholder="Ej: Producción de show XYZ" onkeydown="if(event.key==='Enter')npSave();if(event.key==='Escape')npCancel();"></div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="np_date"></div>
+            <div class="form-group"><label class="form-label">Tipo</label>
+              <select class="form-input" id="np_type">
+                <option value="show">Show</option>
+                <option value="facultad">Facultad</option>
+                <option value="personal">Personal</option>
+                <option value="agencia">Agencia</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:8px">
+              <button class="btn btn-ghost" onclick="npCancel()">Cancelar</button>
+              <button class="btn btn-accent" onclick="npSave()">Crear</button>
+            </div>
+          </div>
         </div>
         <div class="context-tabs" id="projTypeTabs"></div>
         <div class="projects-grid" id="projectsGrid"></div>
@@ -2734,7 +2789,12 @@
      MODAL — campos dinámicos según tipo + guardado real en Supabase
      ========================================================= */
   function updateForm() {
-    const type = document.getElementById('newType').value;
+    const newTypeSel = document.getElementById('newType');
+    if (newTypeSel.value === 'Proyecto' || newTypeSel.value === 'Show / Evento') {
+      newTypeSel.innerHTML = Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+      newTypeSel.value = 'show';
+    }
+    const type = newTypeSel.value;
     const wrap = document.getElementById('dynamicFields');
     const projOptions = DB.projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
     const contactOptions = DB.contacts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
@@ -2776,20 +2836,11 @@
     } else if (type === 'Proyecto' || type === 'Show / Evento' || PROJECT_TYPES_CREATE[type]) {
       const isShow = type === 'Show / Evento' || type === 'show';
       const presetProjType = PROJECT_TYPES_CREATE[type] ? type : (isShow ? 'show' : '');
-      const presetAreaName = { show:'Producción', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' }[presetProjType] || '';
       html = `
         <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="f_title" placeholder="${isShow?'Ej: Show Club XYZ':'Ej: Rediseño de marca'}"></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Tipo</label>
-            <select class="form-input" id="f_type">
-              ${Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}" ${k===presetProjType ? 'selected' : ''}>${v}</option>`).join('')}
-            </select>
-          </div>
           <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="f_priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Área</label><select class="form-input" id="f_area">${DB.areas.map(a => `<option value="${a.id}" ${a.name===presetAreaName ? 'selected' : ''}>${a.name}</option>`).join('')}</select></div>
-          <div class="form-group"><label class="form-label">Tipo personal</label><select class="form-input" id="f_tipopersonal"><option value="">—</option><option value="investigacion">Investigación</option><option value="ingreso">Ingreso</option><option value="ambos">Ambos</option></select></div>
+          <div class="form-group" style="${presetProjType==='personal' ? '' : 'display:none'}"><label class="form-label">Tipo personal</label><select class="form-input" id="f_tipopersonal"><option value="">—</option><option value="investigacion">Investigación</option><option value="ingreso">Ingreso</option><option value="ambos">Ambos</option></select></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" type="date" id="f_start" value="${todayISO()}"></div>
@@ -2918,13 +2969,16 @@
 
       } else if (type === 'Proyecto' || type === 'Show / Evento' || PROJECT_TYPES_CREATE[type]) {
         const isShow = type === 'Show / Evento' || type === 'show';
+        const projType = PROJECT_TYPES_CREATE[type] ? type : (isShow ? 'show' : 'otro');
+        const areaName = { show:'Producción', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' }[projType] || '';
+        const areaId = (DB.areas.find(a => a.name === areaName) || {}).id || null;
         const { data, error } = await supabaseClient.from('projects').insert([{
-          name: title, type: val('f_type') || (isShow?'show':'otro'), status: 'planificacion',
+          name: title, type: projType, status: 'planificacion',
           priority: val('f_priority').toLowerCase(), start_date: val('f_start') || todayISO(),
           deadline: val('f_date') || null, responsible: 'Vos', org_id: val('f_org') || null,
           artist_id: val('f_artist') || null, objective: val('f_objective'), description: '',
           progress: 0, booking_stage: isShow ? 'lead' : '',
-          area_id: val('f_area') || null, tipo_personal: val('f_tipopersonal') || null
+          area_id: areaId, tipo_personal: projType === 'personal' ? (val('f_tipopersonal') || null) : null
         }]).select();
         if (error) throw error;
         const newProj = data[0];
@@ -3112,6 +3166,51 @@
 
   function setProjFilter(f) { projFilter = f; renderProjects(); }
 
+  function npOpen() {
+    document.getElementById('npToggleBtn').style.display = 'none';
+    document.getElementById('npForm').style.display = 'block';
+    document.getElementById('np_title').focus();
+  }
+
+  function npCancel() {
+    document.getElementById('np_title').value = '';
+    document.getElementById('np_date').value = '';
+    document.getElementById('np_type').value = 'show';
+    document.getElementById('npForm').style.display = 'none';
+    document.getElementById('npToggleBtn').style.display = 'inline-flex';
+  }
+
+  async function npSave() {
+    const title = document.getElementById('np_title').value.trim();
+    if (!title) { document.getElementById('np_title').focus(); return; }
+    const date = document.getElementById('np_date').value || null;
+    const type = document.getElementById('np_type').value;
+    const areaName = { show:'Producción', facultad:'Facultad', agencia:'Agencia', personal:'Personal' }[type] || '';
+    const areaId = (DB.areas.find(a => a.name === areaName) || {}).id || null;
+    try {
+      const { data, error } = await supabaseClient.from('projects').insert([{
+        name: title, type, status: 'planificacion', deadline: date,
+        area_id: areaId, description: '', progress: 0,
+        booking_stage: type === 'show' ? 'lead' : ''
+      }]).select();
+      if (error) throw error;
+      const newProj = data[0];
+      DB.projects.push(newProj);
+      if (type === 'show') {
+        const { data: phaseData, error: phaseErr } = await supabaseClient.from('phases').insert([
+          { project_id: newProj.id, name: 'Pre-producción', sequence_index: 0, status: 'activa' },
+          { project_id: newProj.id, name: 'Producción', sequence_index: 1, status: 'bloqueada' },
+          { project_id: newProj.id, name: 'Post-producción', sequence_index: 2, status: 'bloqueada' }
+        ]).select();
+        if (!phaseErr && phaseData) DB.phases.push(...phaseData);
+      }
+      npCancel();
+      renderProjects(); renderHome();
+    } catch (err) {
+      alert('Error creando proyecto: ' + err.message);
+    }
+  }
+
   function renderProjects() {
     const tabsEl = document.getElementById('projTypeTabs');
     const gridEl = document.getElementById('projectsGrid');
@@ -3126,7 +3225,7 @@
     if (badge) { const active = DB.projects.filter(p => !['finalizado','cancelado'].includes(p.status)).length; badge.style.display = active ? 'inline-block':'none'; badge.textContent = active; }
 
     if (!list.length) {
-      gridEl.innerHTML = `<div class="empty-state" style="padding:60px 20px;grid-column:1/-1"><div class="empty-icon" style="font-size:40px">◻</div><div class="empty-title">Sin proyectos en esta categoría</div><button class="btn btn-accent" style="margin-top:18px" onclick="openModal('Proyecto')">+ Crear proyecto</button></div>`;
+      gridEl.innerHTML = `<div class="empty-state" style="padding:60px 20px;grid-column:1/-1"><div class="empty-icon" style="font-size:40px">◻</div><div class="empty-title">Sin proyectos en esta categoría</div><button class="btn btn-accent" style="margin-top:18px" onclick="npOpen()">+ Crear proyecto</button></div>`;
     } else {
       gridEl.innerHTML = list.map(p => {
         const pending = tasksOf(p.id).filter(t => !t.done);
@@ -3187,50 +3286,218 @@
     }
   }
 
+  /* =========================================================
+     ALTA RÁPIDA DE TAREAS — checklist simple por Proyecto/Etapa
+     (reemplaza el modal completo para crear tareas dentro de un Proyecto)
+     ========================================================= */
+  function qaFriendlyDate(d) {
+    if (!d) return '';
+    if (d === todayISO()) return 'Hoy';
+    if (d === addDays(todayISO(), 1)) return 'Mañana';
+    return fmtDate(d);
+  }
+
+  function qaTaskRow(t) {
+    const dateLabel = qaFriendlyDate(t.due_date || t.scheduled_date);
+    return `<div class="task-item">
+      <div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div>
+      <div class="task-text ${t.done?'done':''}">${escapeHtml(t.title)}
+        ${dateLabel ? `<div class="qa-date-chip">${dateLabel}${t.is_recurring?' · 🔁':''}</div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function qaAddRowHtml(projectId, phaseId, blockId) {
+    return `
+      <div class="qa-block" id="${blockId}" data-project="${projectId}" data-phase="${phaseId || ''}">
+        <div class="qa-closed" onclick="qaOpen('${blockId}')">＋ Añadir una tarea</div>
+        <div class="qa-open" style="display:none">
+          <input type="text" class="qa-input" placeholder="Título de la tarea" onkeydown="qaKeydown(event,'${blockId}')">
+          <div class="qa-toolbar">
+            <button type="button" class="qa-chip" onclick="qaSetDate('${blockId}','today')">Hoy</button>
+            <button type="button" class="qa-chip" onclick="qaSetDate('${blockId}','tomorrow')">Mañana</button>
+            <button type="button" class="qa-icon-btn" title="Elegir fecha" onclick="qaPickDate('${blockId}')">📅</button>
+            <input type="date" id="${blockId}_date" style="display:none" onchange="qaSetDate('${blockId}','custom')">
+            <button type="button" class="qa-icon-btn" id="${blockId}_repeat" title="Repetir semanalmente" onclick="qaToggleRepeat('${blockId}')">🔁</button>
+            <span class="qa-selected-date" id="${blockId}_label"></span>
+            <span style="flex:1"></span>
+            <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="qaCancel('${blockId}')">Cancelar</button>
+            <button type="button" class="btn btn-accent" style="font-size:11px;padding:5px 10px" onclick="qaSave('${blockId}')">Añadir</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderProjectTasksColumn(p, tasks) {
+    const phases = phasesOf(p.id);
+    const group = (phaseId, label) => {
+      const groupTasks = tasks.filter(t => (t.phase_id || '') === (phaseId || ''));
+      const open = groupTasks.filter(t => !t.done);
+      const done = groupTasks.filter(t => t.done);
+      const bId = `qa_${p.id}_${phaseId || 'main'}`;
+      return `<div class="qa-group">
+        ${label ? `<div class="qa-group-label">${escapeHtml(label)}</div>` : ''}
+        ${open.map(qaTaskRow).join('')}
+        ${qaAddRowHtml(p.id, phaseId, bId)}
+        ${done.length ? `
+          <div class="qa-completed-toggle" onclick="qaToggleCompleted('${bId}')"><span id="${bId}_arrow">▶</span> Completadas (${done.length})</div>
+          <div class="qa-completed-list" id="${bId}_done" style="display:none">${done.map(qaTaskRow).join('')}</div>` : ''}
+      </div>`;
+    };
+    if (phases.length) {
+      const hasLoose = tasks.some(t => !t.phase_id);
+      return phases.map(ph => group(ph.id, ph.name)).join('') + (hasLoose ? group(null, 'General') : '');
+    }
+    return group(null, '');
+  }
+
+  function qaOpen(blockId) {
+    const b = document.getElementById(blockId);
+    if (!b) return;
+    b.querySelector('.qa-closed').style.display = 'none';
+    b.querySelector('.qa-open').style.display = 'block';
+    b.querySelector('.qa-input').focus();
+  }
+
+  function qaCancel(blockId) {
+    const b = document.getElementById(blockId);
+    if (!b) return;
+    b.querySelector('.qa-input').value = '';
+    delete b.dataset.date; delete b.dataset.repeat;
+    const label = document.getElementById(blockId+'_label'); if (label) label.textContent = '';
+    const repeatBtn = document.getElementById(blockId+'_repeat'); if (repeatBtn) repeatBtn.classList.remove('active');
+    b.querySelectorAll('.qa-chip').forEach(c => c.classList.remove('active'));
+    b.querySelector('.qa-closed').style.display = 'flex';
+    b.querySelector('.qa-open').style.display = 'none';
+  }
+
+  function qaKeydown(e, blockId) {
+    if (e.key === 'Enter') { e.preventDefault(); qaSave(blockId); }
+    else if (e.key === 'Escape') { qaCancel(blockId); }
+  }
+
+  function qaPickDate(blockId) {
+    const input = document.getElementById(blockId+'_date');
+    if (input.showPicker) input.showPicker(); else input.click();
+  }
+
+  function qaSetDate(blockId, kind) {
+    const b = document.getElementById(blockId);
+    if (!b) return;
+    let d = '';
+    if (kind === 'today') d = todayISO();
+    else if (kind === 'tomorrow') d = addDays(todayISO(), 1);
+    else if (kind === 'custom') d = document.getElementById(blockId+'_date').value;
+    b.dataset.date = d;
+    b.querySelectorAll('.qa-chip').forEach(c => c.classList.remove('active'));
+    if (kind === 'today') b.querySelector('.qa-chip')?.classList.add('active');
+    if (kind === 'tomorrow') b.querySelectorAll('.qa-chip')[1]?.classList.add('active');
+    const label = document.getElementById(blockId+'_label');
+    if (label) label.textContent = d ? '📅 ' + qaFriendlyDate(d) : '';
+  }
+
+  function qaToggleRepeat(blockId) {
+    const b = document.getElementById(blockId);
+    if (!b) return;
+    const on = b.dataset.repeat === '1';
+    b.dataset.repeat = on ? '' : '1';
+    const btn = document.getElementById(blockId+'_repeat');
+    if (btn) btn.classList.toggle('active', !on);
+  }
+
+  function qaToggleCompleted(blockId) {
+    const list = document.getElementById(blockId+'_done');
+    const arrow = document.getElementById(blockId+'_arrow');
+    if (!list) return;
+    const isOpen = list.style.display !== 'none';
+    list.style.display = isOpen ? 'none' : 'block';
+    if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
+  }
+
+  async function qaSave(blockId) {
+    const b = document.getElementById(blockId);
+    if (!b) return;
+    const input = b.querySelector('.qa-input');
+    const title = input.value.trim();
+    if (!title) { input.focus(); return; }
+    const projectId = b.dataset.project;
+    const phaseId = b.dataset.phase || null;
+    const date = b.dataset.date || null;
+    const repeat = b.dataset.repeat === '1';
+    const proj = projectById(projectId);
+    try {
+      const { data, error } = await supabaseClient.from('tasks').insert([{
+        title, project_id: projectId, phase_id: phaseId,
+        area_id: proj ? proj.area_id : null,
+        due_date: date, scheduled_date: date,
+        priority: 'media', status: 'to_do', done: false,
+        is_recurring: repeat, create_event: !!date
+      }]).select();
+      if (error) throw error;
+      DB.tasks.push(data[0]);
+      renderAllTasks(); renderProjects(); renderHome();
+      if (selectedProjectId) renderProjectDetail(selectedProjectId);
+    } catch (err) {
+      alert('Error creando tarea: ' + err.message);
+    }
+  }
+
   function renderProjectDetail(id) {
     const wrap = document.getElementById('projectDetailWrap');
     const p = projectById(id);
     if (!wrap || !p) { if (wrap) wrap.innerHTML=''; return; }
-    const org = orgById(p.org_id), artist = artistById(p.artist_id);
     const tasks = tasksOf(p.id);
-    const notes = notesOf(p.id);
-    const docs = DB.documents.filter(d => d.project_id === p.id);
+    const typeOptions = { show:'Show', facultad:'Facultad', personal:'Personal', agencia:'Agencia' };
     wrap.innerHTML = `
       <div class="card">
         <div class="section-header">
-          <div class="section-title"><div class="section-dot" style="background:${statusColor(p.status)}"></div>${projectEmoji(p.type)} ${escapeHtml(p.name)}</div>
+          <input class="pd-title-input" value="${escapeHtml(p.name)}" onchange="pdSaveField('${p.id}','name',this.value)">
           <button class="btn btn-ghost" onclick="selectedProjectId=null;renderProjects()">Cerrar ✕</button>
         </div>
-        ${renderPhaseChips(p.id)}
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px">
-          <div>
-            <div class="section-title" style="font-size:12px;margin-bottom:8px">Información general</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${escapeHtml(p.objective) || 'Sin objetivo definido'}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <span class="proj-task-chip">Tipo: ${PROJECT_TYPES[p.type]||p.type}</span>
-              <span class="proj-task-chip">Estado: ${PROJECT_STATUS[p.status]||p.status}</span>
-              <span class="proj-task-chip">Prioridad: ${p.priority}</span>
-              <span class="proj-task-chip">Deadline: ${fmtDate(p.deadline)}</span>
-              ${org ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('orgs')">${escapeHtml(org.name)}</span>` : ''}
-              ${artist ? `<span class="proj-task-chip" style="cursor:pointer" onclick="setPanel('artists')">★ ${escapeHtml(artist.name)}</span>` : ''}
-            </div>
+        <div class="pd-meta-row">
+          <div class="pd-meta-field">
+            <span class="pd-meta-label">Fecha</span>
+            <input type="date" class="form-input" value="${p.deadline || ''}" onchange="pdSaveField('${p.id}','deadline',this.value)">
           </div>
-          <div>
-            <div class="section-title" style="font-size:12px;margin-bottom:8px">Tareas (${tasks.length})</div>
-            ${tasks.length ? tasks.map(t => { const ph = phaseById(t.phase_id); return `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleDbTask('${t.id}')"></div><div class="task-text ${t.done?'done':''}">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}${ph ? ' · ' + escapeHtml(ph.name) : ''}</div></div></div>`; }).join('') : '<div style="font-size:12px;color:var(--muted)">Sin tareas vinculadas</div>'}
-            <button class="btn btn-ghost" style="margin-top:8px;font-size:11px" onclick="openModal('Tarea');setTimeout(()=>{const s=document.getElementById('f_project');if(s)s.value='${p.id}';onTaskProjectChange();},0)">+ Agregar tarea</button>
-          </div>
-          <div>
-            <div class="section-title" style="font-size:12px;margin-bottom:8px">Notas (${notes.length})</div>
-            ${notes.length ? notes.map(n => `<div class="task-item"><div class="task-text">${escapeHtml(n.title)}<div style="font-size:10px;color:var(--muted)">${n.content ? escapeHtml(n.content.slice(0,60)) + (n.content.length>60?'…':'') : ''}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin notas vinculadas</div>'}
-            <button class="btn btn-ghost" style="margin-top:8px;font-size:11px" onclick="openModal('Nota');setTimeout(()=>{const s=document.getElementById('f_project');if(s)s.value='${p.id}';},0)">+ Agregar nota</button>
-          </div>
-          <div>
-            <div class="section-title" style="font-size:12px;margin-bottom:8px">Documentos (${docs.length})</div>
-            ${docs.length ? docs.map(d => `<div class="task-item"><div class="task-text">${escapeHtml(d.title)}<div style="font-size:10px;color:var(--muted)">${escapeHtml(d.type)}</div></div></div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin documentos vinculados</div>'}
+          <div class="pd-meta-field">
+            <span class="pd-meta-label">Tipo</span>
+            <select class="form-input" onchange="pdSetType('${p.id}',this.value)">
+              ${Object.entries(typeOptions).map(([k,v]) => `<option value="${k}" ${p.type===k?'selected':''}>${v}</option>`).join('')}
+            </select>
           </div>
         </div>
+        ${renderPhaseChips(p.id)}
+        <textarea class="pd-description" placeholder="Descripción general del proyecto..." onchange="pdSaveField('${p.id}','description',this.value)">${escapeHtml(p.description||'')}</textarea>
+        <div class="pd-tasks-title">Tareas (${tasks.length})</div>
+        ${renderProjectTasksColumn(p, tasks)}
       </div>`;
+  }
+
+  async function pdSaveField(id, field, value) {
+    try {
+      const { error } = await supabaseClient.from('projects').update({ [field]: value || null }).eq('id', id);
+      if (error) throw error;
+      const p = projectById(id);
+      if (p) p[field] = value || null;
+      renderProjects();
+    } catch (err) {
+      alert('Error guardando: ' + err.message);
+    }
+  }
+
+  async function pdSetType(id, newType) {
+    const areaName = { show:'Producción', facultad:'Facultad', agencia:'Agencia', personal:'Personal' }[newType] || '';
+    const areaId = (DB.areas.find(a => a.name === areaName) || {}).id || null;
+    try {
+      const { error } = await supabaseClient.from('projects').update({ type: newType, area_id: areaId }).eq('id', id);
+      if (error) throw error;
+      const p = projectById(id);
+      if (p) { p.type = newType; p.area_id = areaId; }
+      renderProjects();
+      if (selectedProjectId) renderProjectDetail(selectedProjectId);
+    } catch (err) {
+      alert('Error actualizando tipo: ' + err.message);
+    }
   }
 
   async function toggleDbTask(id) {
