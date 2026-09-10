@@ -2328,11 +2328,14 @@
             <div id="habitMonthLabel" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-ghost" onclick="toggleHabitEditor()">Editar hábitos</button>
             <button class="btn btn-ghost" onclick="changeHabitMonth(-1)">Anterior</button>
             <button class="btn btn-ghost" onclick="changeHabitMonth(0)">Hoy</button>
             <button class="btn btn-ghost" onclick="changeHabitMonth(1)">Siguiente</button>
           </div>
         </div>
+
+        <div id="habitEditor" style="display:none;margin-bottom:16px"></div>
 
         <!-- RESUMEN KPIs -->
         <div id="habitKpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
@@ -4134,16 +4137,117 @@
      HABIT TRACKER — no tiene tabla en Supabase todavía, se
      guarda localmente en este navegador (localStorage).
      ========================================================= */
-  const HABITS = [
-    { id:'dormir',      name:'Dormir 8hs',     cat:'Bienestar',    catColor:'#7b5cfa' },
-    { id:'meditacion',  name:'Meditación',      cat:'Salud Mental', catColor:'#fa5c8a' },
-    { id:'gimnasio',    name:'Gimnasio',        cat:'Salud Física', catColor:'#5cccfa' },
-    { id:'agua',        name:'2 Lts de agua',   cat:'Alimentación', catColor:'#39d98a' },
-    { id:'gastos',      name:'Anotar gastos',   cat:'Finanzas',     catColor:'#c8f542' },
-    { id:'adaptogenos', name:'Adaptógenos',     cat:'Alimentación', catColor:'#39d98a' },
-    { id:'creatina',    name:'Creatina',        cat:'Alimentación', catColor:'#39d98a' },
-    { id:'proteina',    name:'Proteína',        cat:'Alimentación', catColor:'#39d98a' },
+  const HABIT_LIST_KEY = 'habits_list_v1';
+  const DEFAULT_HABITS = [
+    { id:'dormir',      name:'Dormir 8hs',     cat:'Bienestar' },
+    { id:'meditacion',  name:'Meditación',      cat:'Salud Mental' },
+    { id:'gimnasio',    name:'Gimnasio',        cat:'Salud Física' },
+    { id:'agua',        name:'2 Lts de agua',   cat:'Alimentación' },
+    { id:'gastos',      name:'Anotar gastos',   cat:'Finanzas' },
+    { id:'adaptogenos', name:'Adaptógenos',     cat:'Alimentación' },
+    { id:'creatina',    name:'Creatina',        cat:'Alimentación' },
+    { id:'proteina',    name:'Proteína',        cat:'Alimentación' },
   ];
+
+  function loadHabitsList() {
+    try {
+      const raw = localStorage.getItem(HABIT_LIST_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    saveHabitsList(DEFAULT_HABITS);
+    return DEFAULT_HABITS.slice();
+  }
+
+  function saveHabitsList(list) {
+    try { localStorage.setItem(HABIT_LIST_KEY, JSON.stringify(list)); } catch {}
+  }
+
+  let HABITS = loadHabitsList();
+
+  const HABIT_CAT_PALETTE = ['#7b5cfa','#fa5c8a','#5cccfa','#39d98a','#c8f542','#ffb84d','#ff6b6b','#4dd4e8'];
+  function habitCatColor(cat) {
+    let hash = 0;
+    for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) >>> 0;
+    return HABIT_CAT_PALETTE[hash % HABIT_CAT_PALETTE.length];
+  }
+
+  function habitSlug(name) {
+    return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'habito';
+  }
+
+  function habitUniqueId(name) {
+    const base = habitSlug(name);
+    let id = base, n = 1;
+    while (HABITS.some(h => h.id === id)) { id = `${base}_${n++}`; }
+    return id;
+  }
+
+  function habitAdd() {
+    const input = document.getElementById('newHabitName');
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    const catInput = document.getElementById('newHabitCat');
+    const cat = catInput.value.trim() || 'General';
+    HABITS.push({ id: habitUniqueId(name), name, cat });
+    saveHabitsList(HABITS);
+    input.value = ''; catInput.value = '';
+    renderHabitEditor(); renderHabitTracker();
+  }
+
+  function habitRename(id, newName) {
+    const h = HABITS.find(x => x.id === id);
+    if (!h) return;
+    const name = newName.trim();
+    if (!name) return;
+    h.name = name;
+    saveHabitsList(HABITS);
+    renderHabitTracker();
+  }
+
+  function habitRecat(id, newCat) {
+    const h = HABITS.find(x => x.id === id);
+    if (!h) return;
+    h.cat = newCat.trim() || 'General';
+    saveHabitsList(HABITS);
+    renderHabitTracker();
+  }
+
+  function habitDelete(id) {
+    const h = HABITS.find(x => x.id === id);
+    if (!h) return;
+    if (!confirm(`¿Eliminar el hábito "${h.name}"? El historial marcado de este hábito se pierde.`)) return;
+    HABITS = HABITS.filter(x => x.id !== id);
+    saveHabitsList(HABITS);
+    renderHabitEditor(); renderHabitTracker();
+  }
+
+  function toggleHabitEditor() {
+    const el = document.getElementById('habitEditor');
+    if (!el) return;
+    const isOpen = el.style.display !== 'none';
+    el.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderHabitEditor();
+  }
+
+  function renderHabitEditor() {
+    const el = document.getElementById('habitEditor');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="card">
+        <div class="pd-tasks-title" style="margin-bottom:10px">Editar hábitos</div>
+        ${HABITS.map(h => `
+          <div class="form-row" style="grid-template-columns:2fr 1.2fr auto;gap:8px;margin-bottom:8px;align-items:center">
+            <input class="form-input" value="${escapeHtml(h.name)}" onchange="habitRename('${h.id}', this.value)">
+            <input class="form-input" value="${escapeHtml(h.cat)}" onchange="habitRecat('${h.id}', this.value)">
+            <button class="btn btn-ghost" style="color:var(--red)" onclick="habitDelete('${h.id}')">Eliminar</button>
+          </div>`).join('')}
+        <div class="form-row" style="grid-template-columns:2fr 1.2fr auto;gap:8px;margin-top:12px">
+          <input class="form-input" id="newHabitName" placeholder="Nuevo hábito" onkeydown="if(event.key==='Enter')habitAdd();">
+          <input class="form-input" id="newHabitCat" placeholder="Categoría (opcional)" onkeydown="if(event.key==='Enter')habitAdd();">
+          <button class="btn btn-accent" onclick="habitAdd()">Agregar</button>
+        </div>
+      </div>`;
+  }
 
   const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const DAY_NAMES   = ['dom','lun','mar','mié','jue','vie','sáb'];
@@ -4214,8 +4318,8 @@
     HABITS.forEach(h => {
       let count = 0;
       html += `<tr>`;
-      html += `<td class="ht-name">${h.name}</td>`;
-      html += `<td class="ht-cat"><span class="ht-cat-badge" style="background:${h.catColor}22;color:${h.catColor}">${h.cat}</span></td>`;
+      html += `<td class="ht-name">${escapeHtml(h.name)}</td>`;
+      html += `<td class="ht-cat"><span class="ht-cat-badge" style="background:${habitCatColor(h.cat)}22;color:${habitCatColor(h.cat)}">${escapeHtml(h.cat)}</span></td>`;
 
       for (let d = 1; d <= daysInMonth; d++) {
         const key     = `${h.id}_${d}`;
@@ -4282,7 +4386,7 @@
         <div class="fin-kpi-card kpi-purple">
           <div class="fin-kpi-label">Mejor racha</div>
           <div class="fin-kpi-val" style="color:var(--accent2)">${bestStreak}d</div>
-          <div class="fin-kpi-sub">${bestHabit || '—'}</div>
+          <div class="fin-kpi-sub">${bestHabit ? escapeHtml(bestHabit) : '—'}</div>
         </div>
         <div class="fin-kpi-card kpi-accent">
           <div class="fin-kpi-label">Hábitos activos</div>
@@ -4302,7 +4406,7 @@
         const col = pct >= 70 ? 'var(--green)' : pct >= 40 ? 'var(--accent5)' : 'var(--red)';
         rows += `
           <div class="hab-prog-row">
-            <div class="hab-prog-name">${h.name}</div>
+            <div class="hab-prog-name">${escapeHtml(h.name)}</div>
             <div><div class="hab-prog-bar-wrap"><div class="hab-prog-bar" style="width:${pct}%;background:${col}"></div></div></div>
             <div class="hab-prog-count">${count}/${total}</div>
             <div class="hab-prog-pct" style="color:${col}">${pct}%</div>
