@@ -2248,16 +2248,20 @@
                 <option>Mayo 2026</option><option>Abril 2026</option><option>Marzo 2026</option>
                 <option>Febrero 2026</option><option>Enero 2026</option>
               </select>
-              <select class="form-input" style="width:auto;font-size:12px;padding:7px 10px">
-                <option>Todas las categorías</option><option>Shows</option><option>Agencia</option>
-                <option>Importaciones</option><option>Viajes</option><option>Producción</option><option>Impuestos</option>
+              <select class="form-input" style="width:auto;font-size:12px;padding:7px 10px" id="movCatFilter">
+                <option value="">Todas las categorías</option>
               </select>
               <select class="form-input" style="width:auto;font-size:12px;padding:7px 10px">
                 <option>Ingresos y egresos</option><option>Solo ingresos</option><option>Solo egresos</option>
               </select>
             </div>
-            <button class="btn btn-accent" style="font-size:12px;white-space:nowrap" onclick="openMovModal()">+ Nuevo movimiento</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" style="font-size:12px" onclick="toggleFinCatEditor()">Editar categorías</button>
+              <button class="btn btn-accent" style="font-size:12px;white-space:nowrap" onclick="openMovModal()">+ Nuevo movimiento</button>
+            </div>
           </div>
+
+          <div id="finCatEditor" style="display:none;margin-bottom:16px"></div>
 
           <!-- TABLA MOVIMIENTOS -->
           <div class="card" style="overflow:hidden">
@@ -2922,16 +2926,109 @@
         <div class="form-group"><label class="form-label">Objetivo</label><input class="form-input" id="f_title" placeholder="Ej: Facturar $60K en el año"></div>
         <div class="form-group"><label class="form-label">Progreso actual (%)</label><input class="form-input" type="number" min="0" max="100" id="f_pct" value="0"></div>`;
     } else if (type === 'Ingreso' || type === 'Gasto') {
+      const finKind = type === 'Ingreso' ? 'ingreso' : 'gasto';
       html = `
         <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="f_title" placeholder="Ej: Show Club XYZ"></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Categoría</label><input class="form-input" id="f_cat" placeholder="Shows, Agencia, Viajes..."></div>
+          <div class="form-group"><label class="form-label">Categoría</label><select class="form-input" id="f_cat">${FIN_CATS[finKind].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}</select></div>
           <div class="form-group"><label class="form-label">Monto (USD)</label><input class="form-input" type="number" id="f_amount" placeholder="0"></div>
         </div>
         <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="f_date" value="${todayISO()}"></div>
         <div class="form-group"><label class="form-label">Proyecto vinculado (opcional)</label><select class="form-input" id="f_project"><option value="">— Ninguno —</option>${projOptions}</select></div>`;
     }
     wrap.innerHTML = html;
+  }
+
+  const FIN_CAT_KEY = 'fin_categories_v1';
+  const DEFAULT_FIN_CATS = {
+    ingreso: ['Ventas / Honorarios','Trabajo independiente','Booking / Agencia','Producción técnica','Importaciones','Otros ingresos'],
+    gasto: ['Servicios','Alimentación','Transporte','Hogar','Facultad','Producción / Equipamiento','Otros gastos']
+  };
+
+  function loadFinCats() {
+    try {
+      const raw = localStorage.getItem(FIN_CAT_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    saveFinCats(DEFAULT_FIN_CATS);
+    return JSON.parse(JSON.stringify(DEFAULT_FIN_CATS));
+  }
+
+  function saveFinCats(cats) {
+    try { localStorage.setItem(FIN_CAT_KEY, JSON.stringify(cats)); } catch {}
+  }
+
+  let FIN_CATS = loadFinCats();
+
+  function finCatAdd(kind) {
+    const input = document.getElementById('newFinCat_' + kind);
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    if (!FIN_CATS[kind].includes(name)) FIN_CATS[kind].push(name);
+    saveFinCats(FIN_CATS);
+    input.value = '';
+    renderFinCatEditor();
+    populateMovCatFilter();
+  }
+
+  function finCatRename(kind, idx, newName) {
+    const name = newName.trim();
+    if (!name) return;
+    FIN_CATS[kind][idx] = name;
+    saveFinCats(FIN_CATS);
+    populateMovCatFilter();
+  }
+
+  function finCatDelete(kind, idx) {
+    const name = FIN_CATS[kind][idx];
+    if (!confirm(`¿Eliminar la categoría "${name}"?`)) return;
+    FIN_CATS[kind].splice(idx, 1);
+    saveFinCats(FIN_CATS);
+    renderFinCatEditor();
+    populateMovCatFilter();
+  }
+
+  function toggleFinCatEditor() {
+    const el = document.getElementById('finCatEditor');
+    if (!el) return;
+    const isOpen = el.style.display !== 'none';
+    el.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderFinCatEditor();
+  }
+
+  function finCatColumnHtml(kind, label) {
+    return `
+      <div style="flex:1;min-width:220px">
+        <div class="pd-tasks-title">${label}</div>
+        ${FIN_CATS[kind].map((c, i) => `
+          <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+            <input class="form-input" value="${escapeHtml(c)}" onchange="finCatRename('${kind}', ${i}, this.value)">
+            <button class="btn btn-ghost" style="color:var(--red)" onclick="finCatDelete('${kind}', ${i})">Eliminar</button>
+          </div>`).join('')}
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input class="form-input" id="newFinCat_${kind}" placeholder="Nueva categoría" onkeydown="if(event.key==='Enter')finCatAdd('${kind}');">
+          <button class="btn btn-accent" onclick="finCatAdd('${kind}')">Agregar</button>
+        </div>
+      </div>`;
+  }
+
+  function renderFinCatEditor() {
+    const el = document.getElementById('finCatEditor');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="card" style="display:flex;gap:24px;flex-wrap:wrap">
+        ${finCatColumnHtml('ingreso', 'Categorías de Ingreso')}
+        ${finCatColumnHtml('gasto', 'Categorías de Gasto')}
+      </div>`;
+  }
+
+  function populateMovCatFilter() {
+    const sel = document.getElementById('movCatFilter');
+    if (!sel) return;
+    const current = sel.value;
+    const all = [...FIN_CATS.ingreso, ...FIN_CATS.gasto];
+    sel.innerHTML = '<option value="">Todas las categorías</option>' + all.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    sel.value = all.includes(current) ? current : '';
   }
 
   function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
@@ -4095,6 +4192,7 @@
   }
 
   function renderMovimientos() {
+    populateMovCatFilter();
     const tbody = document.getElementById('movTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -4125,10 +4223,7 @@
   }
 
   function getCatColor(cat) {
-    const map = { Shows:'var(--accent3)', Agencia:'var(--accent2)', Importaciones:'var(--accent5)',
-      Viajes:'var(--accent4)', Producción:'var(--accent)', Herramientas:'var(--muted)',
-      Impuestos:'var(--red)', Inversiones:'var(--accent2)' };
-    return map[cat] || 'var(--muted)';
+    return habitCatColor(cat || 'Otros');
   }
 
   function openMovModal() { openModal('Ingreso'); }
