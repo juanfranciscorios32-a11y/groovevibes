@@ -2791,6 +2791,9 @@
     if (type === 'Proyecto') {
       newTypeSel.innerHTML = Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
       newTypeSel.value = 'show';
+    } else if (type === 'Ingreso' || type === 'Gasto') {
+      newTypeSel.innerHTML = '<option>Ingreso</option><option>Gasto</option>';
+      newTypeSel.value = type;
     } else {
       newTypeSel.innerHTML = '<option>Tarea</option><option>Proyecto</option><option>Show / Evento</option><option>Contacto</option><option>Organización</option><option>Artista</option><option>Materia</option><option>Documento</option><option>Nota</option><option>Objetivo</option><option>Ingreso</option><option>Gasto</option>';
       if (type) newTypeSel.value = type;
