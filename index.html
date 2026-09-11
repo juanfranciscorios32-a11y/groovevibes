@@ -2274,6 +2274,7 @@
                   <th>Tipo</th>
                   <th style="text-align:right">Monto</th>
                   <th style="text-align:right">Saldo</th>
+                  <th style="text-align:right">Acciones</th>
                 </tr>
               </thead>
               <tbody id="movTableBody">
@@ -2943,15 +2944,24 @@
   }
 
   const FIN_CAT_KEY = 'fin_categories_v1';
+  const OLD_DEFAULT_INGRESO = ['Ventas / Honorarios','Trabajo independiente','Booking / Agencia','Producción técnica','Importaciones','Otros ingresos'];
   const DEFAULT_FIN_CATS = {
-    ingreso: ['Ventas / Honorarios','Trabajo independiente','Booking / Agencia','Producción técnica','Importaciones','Otros ingresos'],
+    ingreso: ['Evento','Agencia','Ventas','Comisiones','Otros ingresos'],
     gasto: ['Servicios','Alimentación','Transporte','Hogar','Facultad','Producción / Equipamiento','Otros gastos']
   };
 
   function loadFinCats() {
     try {
       const raw = localStorage.getItem(FIN_CAT_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Migración de una sola vez: si nunca tocó la lista de Ingreso, actualizarla a la nueva
+        if (JSON.stringify(parsed.ingreso) === JSON.stringify(OLD_DEFAULT_INGRESO)) {
+          parsed.ingreso = DEFAULT_FIN_CATS.ingreso.slice();
+          saveFinCats(parsed);
+        }
+        return parsed;
+      }
     } catch {}
     saveFinCats(DEFAULT_FIN_CATS);
     return JSON.parse(JSON.stringify(DEFAULT_FIN_CATS));
@@ -4194,27 +4204,49 @@
     }
   }
 
+  let editingMovId = null;
+
   function renderMovimientos() {
     populateMovCatFilter();
     const tbody = document.getElementById('movTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
     if (!DB.movimientos.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:30px 0"><div class="empty-desc">Sin movimientos cargados. Usá "+ Nuevo movimiento" para empezar a registrar ingresos y egresos.</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state" style="padding:30px 0"><div class="empty-desc">Sin movimientos cargados. Usá "+ Nuevo movimiento" para empezar a registrar ingresos y egresos.</div></div></td></tr>`;
     } else {
       DB.movimientos.forEach(m => {
         const isIng = m.tipo === 'ingreso';
         const monto = Number(m.monto) || 0;
         const saldo = Number(m.saldo) || 0;
         const row = document.createElement('tr');
-        row.innerHTML = `
-          <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(m.fecha)}</td>
-          <td style="font-size:13px">${escapeHtml(m.description)}</td>
-          <td><span class="mov-badge" style="background:${getCatColor(m.cat)}22;color:${getCatColor(m.cat)}">${escapeHtml(m.cat)}</span></td>
-          <td><span class="mov-badge" style="background:${isIng?'rgba(57,217,138,0.1)':'rgba(255,77,109,0.1)'};color:${isIng?'var(--green)':'var(--red)'}">${isIng?'Ingreso':'Egreso'}</span></td>
-          <td style="text-align:right;font-family:var(--mono);font-weight:700;color:${isIng?'var(--green)':'var(--red)'}">${isIng?'+':''}$${Math.abs(monto).toLocaleString('es-AR')}</td>
-          <td style="text-align:right;font-family:var(--mono);font-size:11px;color:${saldo>=0?'var(--text)':'var(--red)'}">${saldo>=0?'+':''}$${saldo.toLocaleString('es-AR')}</td>
-        `;
+        if (editingMovId === m.id) {
+          const catOptions = FIN_CATS[isIng ? 'ingreso' : 'gasto'];
+          row.innerHTML = `
+            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(m.fecha)}</td>
+            <td><input class="form-input" id="movEditDesc_${m.id}" value="${escapeHtml(m.description)}" style="font-size:12px;padding:6px 8px"></td>
+            <td><select class="form-input" id="movEditCat_${m.id}" style="font-size:12px;padding:6px 8px">${catOptions.map(c => `<option value="${escapeHtml(c)}" ${c===m.cat?'selected':''}>${escapeHtml(c)}</option>`).join('')}</select></td>
+            <td><span class="mov-badge" style="background:${isIng?'rgba(57,217,138,0.1)':'rgba(255,77,109,0.1)'};color:${isIng?'var(--green)':'var(--red)'}">${isIng?'Ingreso':'Egreso'}</span></td>
+            <td style="text-align:right"><input class="form-input" type="number" id="movEditMonto_${m.id}" value="${Math.abs(monto)}" style="font-size:12px;padding:6px 8px;text-align:right"></td>
+            <td style="text-align:right;font-family:var(--mono);font-size:11px;color:${saldo>=0?'var(--text)':'var(--red)'}">${saldo>=0?'+':''}$${saldo.toLocaleString('es-AR')}</td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px" onclick="movCancelEdit()">Cancelar</button>
+              <button class="btn btn-accent" style="font-size:11px;padding:5px 9px" onclick="movSaveEdit('${m.id}')">Guardar</button>
+            </td>
+          `;
+        } else {
+          row.innerHTML = `
+            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(m.fecha)}</td>
+            <td style="font-size:13px">${escapeHtml(m.description)}</td>
+            <td><span class="mov-badge" style="background:${getCatColor(m.cat)}22;color:${getCatColor(m.cat)}">${escapeHtml(m.cat)}</span></td>
+            <td><span class="mov-badge" style="background:${isIng?'rgba(57,217,138,0.1)':'rgba(255,77,109,0.1)'};color:${isIng?'var(--green)':'var(--red)'}">${isIng?'Ingreso':'Egreso'}</span></td>
+            <td style="text-align:right;font-family:var(--mono);font-weight:700;color:${isIng?'var(--green)':'var(--red)'}">${isIng?'+':''}$${Math.abs(monto).toLocaleString('es-AR')}</td>
+            <td style="text-align:right;font-family:var(--mono);font-size:11px;color:${saldo>=0?'var(--text)':'var(--red)'}">${saldo>=0?'+':''}$${saldo.toLocaleString('es-AR')}</td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px" onclick="movEditRow('${m.id}')">Editar</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px;color:var(--red)" onclick="deleteMovimiento('${m.id}')">Eliminar</button>
+            </td>
+          `;
+        }
         tbody.appendChild(row);
       });
     }
@@ -4223,6 +4255,60 @@
     const ti = document.getElementById('movTotIng'); if (ti) ti.textContent = '+$' + totIng.toLocaleString('es-AR');
     const te = document.getElementById('movTotEgr'); if (te) te.textContent = '-$' + Math.abs(totEgr).toLocaleString('es-AR');
     const tn = document.getElementById('movTotNeto'); if (tn) { const neto = totIng+totEgr; tn.textContent = (neto>=0?'+':'') + '$' + neto.toLocaleString('es-AR'); }
+  }
+
+  function movEditRow(id) { editingMovId = id; renderMovimientos(); }
+  function movCancelEdit() { editingMovId = null; renderMovimientos(); }
+
+  async function movSaveEdit(id) {
+    const m = DB.movimientos.find(x => x.id === id);
+    if (!m) return;
+    const desc = document.getElementById('movEditDesc_' + id).value.trim();
+    const cat = document.getElementById('movEditCat_' + id).value;
+    const amountAbs = Math.abs(parseFloat(document.getElementById('movEditMonto_' + id).value) || 0);
+    const signed = m.tipo === 'ingreso' ? amountAbs : -amountAbs;
+    try {
+      const { error } = await supabaseClient.from('movimientos').update({ description: desc, cat, monto: signed }).eq('id', id);
+      if (error) throw error;
+      m.description = desc; m.cat = cat; m.monto = signed;
+      editingMovId = null;
+      await recalcSaldos();
+      renderMovimientos();
+      renderHome();
+    } catch (err) {
+      alert('Error guardando: ' + err.message);
+    }
+  }
+
+  async function deleteMovimiento(id) {
+    if (!confirm('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) return;
+    try {
+      const { error } = await supabaseClient.from('movimientos').delete().eq('id', id);
+      if (error) throw error;
+      DB.movimientos = DB.movimientos.filter(m => m.id !== id);
+      await recalcSaldos();
+      renderMovimientos();
+      renderHome();
+    } catch (err) {
+      alert('Error eliminando movimiento: ' + err.message);
+    }
+  }
+
+  async function recalcSaldos() {
+    // DB.movimientos está ordenado más nuevo primero; recalculamos en orden cronológico de carga
+    const chronological = [...DB.movimientos].reverse();
+    let running = 0;
+    const updates = [];
+    chronological.forEach(m => {
+      running += Number(m.monto) || 0;
+      if (Number(m.saldo) !== running) {
+        m.saldo = running;
+        updates.push({ id: m.id, saldo: running });
+      }
+    });
+    for (const u of updates) {
+      await supabaseClient.from('movimientos').update({ saldo: u.saldo }).eq('id', u.id);
+    }
   }
 
   function getCatColor(cat) {
