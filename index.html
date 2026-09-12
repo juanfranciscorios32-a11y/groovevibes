@@ -2170,14 +2170,14 @@
 
         <!-- FIN TABS -->
         <div class="context-tabs" style="margin-bottom:20px">
-          <button class="ctx-tab active" onclick="setFinTab('flujo', this)">Flujo de Caja</button>
+          <button class="ctx-tab active" onclick="setFinTab('movimientos', this)">Movimientos</button>
           <button class="ctx-tab" onclick="setFinTab('inversiones', this)">Inversiones</button>
-          <button class="ctx-tab" onclick="setFinTab('movimientos', this)">Movimientos</button>
+          <button class="ctx-tab" onclick="setFinTab('flujo', this)">Resumen</button>
           <button class="ctx-tab" onclick="setFinTab('proyeccion', this)">Proyección</button>
         </div>
 
-        <!-- === FLUJO DE CAJA === -->
-        <div id="fin-flujo">
+        <!-- === FLUJO DE CAJA / RESUMEN === -->
+        <div id="fin-flujo" style="display:none">
 
           <!-- KPI ROW — calculado en vivo desde movimientos reales -->
           <div class="fin-kpi-row" id="flujoKpiRow" style="grid-template-columns:repeat(3,1fr)">
@@ -2239,7 +2239,7 @@
         </div>
 
         <!-- === MOVIMIENTOS (tipo planilla CAJA) === -->
-        <div id="fin-movimientos" style="display:none">
+        <div id="fin-movimientos">
 
           <!-- FILTROS -->
           <div class="mov-filters">
@@ -2306,7 +2306,7 @@
             <div class="empty-state" style="padding:50px 20px">
               <div class="empty-icon" style="font-size:34px"></div>
               <div class="empty-title">Proyección en desarrollo</div>
-              <div class="empty-desc">Por ahora el flujo real (con datos de Supabase) se calcula en la pestaña "Flujo de Caja". La proyección a futuro se puede sumar más adelante.</div>
+              <div class="empty-desc">Por ahora el flujo real (con datos de Supabase) se calcula en la pestaña "Resumen". La proyección a futuro se puede sumar más adelante.</div>
             </div>
           </div>
         </div>
@@ -2769,7 +2769,7 @@
     document.querySelectorAll('.nav-item').forEach(n => {
       if (n.onclick?.toString().includes(`'${id}'`)) n.classList.add('active');
     });
-    if (id === 'finance') renderFlujoChart();
+    if (id === 'finance') renderMovimientos();
     if (id === 'habits')  renderHabitTracker();
     if (id === 'inbox')   renderInbox();
     if (id === 'tasks')   renderProjects();
