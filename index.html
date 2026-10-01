@@ -4533,7 +4533,7 @@
         const row = document.createElement('tr');
         if (editingMovId === m.id) {
           row.innerHTML = `
-            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(m.fecha)}</td>
+            <td><input class="form-input" type="date" id="movEditFecha_${m.id}" value="${m.fecha && m.fecha.includes('-') ? m.fecha : todayISO()}" style="font-size:12px;padding:6px 8px"></td>
             <td><input class="form-input" id="movEditDesc_${m.id}" value="${escapeHtml(m.description)}" style="font-size:12px;padding:6px 8px"></td>
             <td><select class="form-input" id="movEditCat_${m.id}" style="font-size:12px;padding:6px 8px">${finCatSelectOptions(isIng ? 'ingreso' : 'gasto', m.cat)}</select></td>
             <td><span class="mov-badge" style="background:${isIng?'rgba(57,217,138,0.1)':'rgba(255,77,109,0.1)'};color:${isIng?'var(--green)':'var(--red)'}">${isIng?'Ingreso':'Egreso'}</span></td>
@@ -4574,14 +4574,15 @@
   async function movSaveEdit(id) {
     const m = DB.movimientos.find(x => x.id === id);
     if (!m) return;
+    const fecha = document.getElementById('movEditFecha_' + id).value || m.fecha;
     const desc = document.getElementById('movEditDesc_' + id).value.trim();
     const cat = document.getElementById('movEditCat_' + id).value;
     const amountAbs = Math.abs(parseFloat(document.getElementById('movEditMonto_' + id).value) || 0);
     const signed = m.tipo === 'ingreso' ? amountAbs : -amountAbs;
     try {
-      const { error } = await supabaseClient.from('movimientos').update({ description: desc, cat, monto: signed }).eq('id', id);
+      const { error } = await supabaseClient.from('movimientos').update({ fecha, description: desc, cat, monto: signed }).eq('id', id);
       if (error) throw error;
-      m.description = desc; m.cat = cat; m.monto = signed;
+      m.fecha = fecha; m.description = desc; m.cat = cat; m.monto = signed;
       editingMovId = null;
       await recalcSaldos();
       renderMovimientos();
