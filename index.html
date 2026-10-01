@@ -2222,6 +2222,15 @@
             </div>
           </div>
 
+          <!-- CIERRE DE CADA MES — se completa solo con lo cargado en CAJA -->
+          <div class="card" style="margin-bottom:16px;overflow:hidden">
+            <div class="section-title" style="margin-bottom:14px"><div class="section-dot" style="background:var(--accent4)"></div>Cierre mensual</div>
+            <table class="mov-table">
+              <thead><tr><th>Mes</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Egresos</th><th style="text-align:right">Balance</th><th style="text-align:right">Saldo inicial mes siguiente</th></tr></thead>
+              <tbody id="flujoCierreMensual"></tbody>
+            </table>
+          </div>
+
           <!-- DESGLOSE POR CATEGORÍA — calculado en vivo -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             <div class="card">
@@ -3194,11 +3203,15 @@
     sel.value = all.includes(current) ? current : '';
   }
 
+  let movMesInitialized = false;
+
   function populateMovMesFilter() {
     const sel = document.getElementById('movMes');
     if (!sel) return;
     const current = sel.value;
     const seen = new Map();
+    const mesActualKey = mesKeyHoy();
+    seen.set(mesActualKey, mesKeyLabel(mesActualKey)); // el mes actual siempre disponible para poder cargar, aunque no tenga nada todavía
     DB.movimientos.forEach(m => {
       const key = movMonthKey(m.fecha);
       if (!key) return;
@@ -3210,7 +3223,12 @@
     });
     const keys = [...seen.keys()].sort().reverse();
     sel.innerHTML = '<option value="">Todos los meses</option>' + keys.map(k => `<option value="${k}">${seen.get(k)}</option>`).join('');
-    sel.value = seen.has(current) ? current : '';
+    if (!movMesInitialized) {
+      sel.value = mesActualKey;
+      movMesInitialized = true;
+    } else {
+      sel.value = seen.has(current) ? current : '';
+    }
   }
 
   function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
@@ -4435,6 +4453,30 @@
     if (egrCatEl) {
       const rows = byCat('egreso');
       egrCatEl.innerHTML = rows.length ? rows.map(([cat, total]) => `<div class="finance-row"><span>${escapeHtml(cat)}</span><span class="finance-amount fin-expense">-$${total.toLocaleString('es-AR')}</span></div>`).join('') : `<div class="empty-state" style="padding:12px 0"><div class="empty-desc">Sin egresos cargados</div></div>`;
+    }
+
+    // Cierre mensual: ingresos/egresos/balance por mes + saldo con el que arranca el mes siguiente
+    const cierreEl = document.getElementById('flujoCierreMensual');
+    if (cierreEl) {
+      const mesesConFecha = [...new Set(DB.movimientos.filter(m => m.fecha && m.fecha.includes('-')).map(m => m.fecha.slice(0,7)))].sort().reverse();
+      if (!mesesConFecha.length) {
+        cierreEl.innerHTML = `<tr><td colspan="5"><div class="empty-state" style="padding:20px 0"><div class="empty-desc">Sin movimientos con fecha completa todavía.</div></div></td></tr>`;
+      } else {
+        cierreEl.innerHTML = mesesConFecha.map(mesKey => {
+          const delMes = DB.movimientos.filter(m => (m.fecha||'').slice(0,7) === mesKey);
+          const ing = delMes.filter(m => m.tipo === 'ingreso').reduce((s,m) => s + (Number(m.monto)||0), 0);
+          const egr = delMes.filter(m => m.tipo === 'egreso').reduce((s,m) => s + Math.abs(Number(m.monto)||0), 0);
+          const balance = ing - egr;
+          const saldoAlCierre = DB.movimientos.filter(m => m.fecha && m.fecha.includes('-') && m.fecha.slice(0,7) <= mesKey).reduce((s,m) => s + (Number(m.monto)||0), 0);
+          return `<tr>
+            <td style="font-size:13px">${mesKeyLabel(mesKey)}</td>
+            <td style="text-align:right;font-family:var(--mono);color:var(--green)">+$${ing.toLocaleString('es-AR')}</td>
+            <td style="text-align:right;font-family:var(--mono);color:var(--red)">-$${egr.toLocaleString('es-AR')}</td>
+            <td style="text-align:right;font-family:var(--mono);font-weight:700;color:${balance>=0?'var(--green)':'var(--red)'}">${balance>=0?'+':''}$${balance.toLocaleString('es-AR')}</td>
+            <td style="text-align:right;font-family:var(--mono)">$${saldoAlCierre.toLocaleString('es-AR')}</td>
+          </tr>`;
+        }).join('');
+      }
     }
   }
 
