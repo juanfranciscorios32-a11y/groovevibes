@@ -2315,6 +2315,10 @@
           <!-- TOTALES (del mes/filtro seleccionado) -->
           <div class="mov-totals" style="margin-bottom:16px">
             <div class="mov-total-item">
+              <span style="color:var(--muted)">Saldo mensual</span>
+              <span id="movSaldoInicial" style="font-family:var(--mono);font-weight:700">—</span>
+            </div>
+            <div class="mov-total-item">
               <span style="color:var(--muted)">Total ingresos</span>
               <span id="movTotIng" style="color:var(--green);font-family:var(--mono);font-weight:700">+$0</span>
             </div>
@@ -2323,7 +2327,7 @@
               <span id="movTotEgr" style="color:var(--red);font-family:var(--mono);font-weight:700">-$0</span>
             </div>
             <div class="mov-total-item" style="border-left:2px solid var(--accent);padding-left:16px">
-              <span style="font-weight:600">Neto</span>
+              <span style="font-weight:600">Saldo al cierre</span>
               <span id="movTotNeto" style="color:var(--accent);font-family:var(--mono);font-weight:700;font-size:16px">+$0</span>
             </div>
           </div>
@@ -4563,9 +4567,12 @@
     }
     const totIng = filtrados.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+(Number(m.monto)||0),0);
     const totEgr = filtrados.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+(Number(m.monto)||0),0);
+    const saldoInicial = mesFiltro ? DB.movimientos.filter(m => m.fecha && m.fecha.includes('-') && m.fecha.slice(0,7) < mesFiltro).reduce((s,m) => s + (Number(m.monto)||0), 0) : 0;
+    const si = document.getElementById('movSaldoInicial');
+    if (si) si.textContent = mesFiltro ? (saldoInicial>=0?'+':'') + '$' + saldoInicial.toLocaleString('es-AR') : '—';
     const ti = document.getElementById('movTotIng'); if (ti) ti.textContent = '+$' + totIng.toLocaleString('es-AR');
     const te = document.getElementById('movTotEgr'); if (te) te.textContent = '-$' + Math.abs(totEgr).toLocaleString('es-AR');
-    const tn = document.getElementById('movTotNeto'); if (tn) { const neto = totIng+totEgr; tn.textContent = (neto>=0?'+':'') + '$' + neto.toLocaleString('es-AR'); }
+    const tn = document.getElementById('movTotNeto'); if (tn) { const neto = saldoInicial + totIng + totEgr; tn.textContent = (neto>=0?'+':'') + '$' + neto.toLocaleString('es-AR'); }
   }
 
   function movEditRow(id) { editingMovId = id; renderMovimientos(); }
