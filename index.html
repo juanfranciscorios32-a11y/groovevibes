@@ -2316,7 +2316,7 @@
           <div class="mov-totals" style="margin-bottom:16px">
             <div class="mov-total-item">
               <span style="color:var(--muted)">Saldo mensual</span>
-              <span id="movSaldoInicial" style="font-family:var(--mono);font-weight:700">—</span>
+              <input id="movSaldoInicial" type="number" class="form-input" style="width:130px;text-align:right;font-family:var(--mono);font-weight:700;padding:5px 8px;font-size:13px" onchange="movAjustarSaldoInicial(this)">
             </div>
             <div class="mov-total-item">
               <span style="color:var(--muted)">Total ingresos</span>
@@ -4569,10 +4569,35 @@
     const totEgr = filtrados.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+(Number(m.monto)||0),0);
     const saldoInicial = mesFiltro ? DB.movimientos.filter(m => m.fecha && m.fecha.includes('-') && m.fecha.slice(0,7) < mesFiltro).reduce((s,m) => s + (Number(m.monto)||0), 0) : 0;
     const si = document.getElementById('movSaldoInicial');
-    if (si) si.textContent = mesFiltro ? (saldoInicial>=0?'+':'') + '$' + saldoInicial.toLocaleString('es-AR') : '—';
+    if (si) { si.value = mesFiltro ? Math.round(saldoInicial*100)/100 : ''; si.placeholder = mesFiltro ? '' : '—'; si.disabled = !mesFiltro; }
     const ti = document.getElementById('movTotIng'); if (ti) ti.textContent = '+$' + totIng.toLocaleString('es-AR');
     const te = document.getElementById('movTotEgr'); if (te) te.textContent = '-$' + Math.abs(totEgr).toLocaleString('es-AR');
     const tn = document.getElementById('movTotNeto'); if (tn) { const neto = saldoInicial + totIng + totEgr; tn.textContent = (neto>=0?'+':'') + '$' + neto.toLocaleString('es-AR'); }
+  }
+
+  async function movAjustarSaldoInicial(input) {
+    const mesFiltro = val('movMes');
+    if (!mesFiltro) { renderMovimientos(); return; }
+    const nuevoValor = parseFloat(input.value);
+    if (isNaN(nuevoValor)) { renderMovimientos(); return; }
+    const actual = DB.movimientos.filter(m => m.fecha && m.fecha.includes('-') && m.fecha.slice(0,7) < mesFiltro).reduce((s,m) => s + (Number(m.monto)||0), 0);
+    const diferencia = Math.round((nuevoValor - actual) * 100) / 100;
+    if (Math.abs(diferencia) < 0.01) { renderMovimientos(); return; }
+    if (!confirm(`Esto crea un movimiento de "Ajuste de saldo" por $${diferencia.toLocaleString('es-AR')} (fechado antes de ${mesKeyLabel(mesFiltro)}) para que el saldo mensual quede en $${nuevoValor.toLocaleString('es-AR')}. ¿Confirmás?`)) { renderMovimientos(); return; }
+    const fechaAjuste = mesKeyAdd(mesFiltro, -1) + '-01';
+    try {
+      const { data, error } = await supabaseClient.from('movimientos').insert([{
+        fecha: fechaAjuste, description: 'Ajuste de saldo', cat: 'Ajuste de saldo',
+        tipo: diferencia >= 0 ? 'ingreso' : 'egreso', monto: diferencia, saldo: 0, project_id: null
+      }]).select();
+      if (error) throw error;
+      DB.movimientos.unshift(data[0]);
+      await recalcSaldos();
+      renderMovimientos();
+      renderHome();
+    } catch (err) {
+      alert('Error creando el ajuste: ' + err.message);
+    }
   }
 
   function movEditRow(id) { editingMovId = id; renderMovimientos(); }
