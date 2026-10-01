@@ -2314,9 +2314,9 @@
 
           <!-- TOTALES (del mes/filtro seleccionado) -->
           <div class="mov-totals" style="margin-bottom:16px">
-            <div class="mov-total-item">
+            <div class="mov-total-item" id="movSaldoItem">
               <span style="color:var(--muted)">Saldo mensual</span>
-              <input id="movSaldoInicial" type="number" class="form-input" style="width:130px;text-align:right;font-family:var(--mono);font-weight:700;padding:5px 8px;font-size:13px" onchange="movAjustarSaldoInicial(this)">
+              <span style="font-family:var(--mono);font-weight:700">—</span>
             </div>
             <div class="mov-total-item">
               <span style="color:var(--muted)">Total ingresos</span>
@@ -4568,16 +4568,42 @@
     const totIng = filtrados.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+(Number(m.monto)||0),0);
     const totEgr = filtrados.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+(Number(m.monto)||0),0);
     const saldoInicial = mesFiltro ? DB.movimientos.filter(m => m.fecha && m.fecha.includes('-') && m.fecha.slice(0,7) < mesFiltro).reduce((s,m) => s + (Number(m.monto)||0), 0) : 0;
-    const si = document.getElementById('movSaldoInicial');
-    if (si) { si.value = mesFiltro ? Math.round(saldoInicial*100)/100 : ''; si.placeholder = mesFiltro ? '' : '—'; si.disabled = !mesFiltro; }
+    renderSaldoMensualItem(mesFiltro, saldoInicial);
     const ti = document.getElementById('movTotIng'); if (ti) ti.textContent = '+$' + totIng.toLocaleString('es-AR');
     const te = document.getElementById('movTotEgr'); if (te) te.textContent = '-$' + Math.abs(totEgr).toLocaleString('es-AR');
     const tn = document.getElementById('movTotNeto'); if (tn) { const neto = saldoInicial + totIng + totEgr; tn.textContent = (neto>=0?'+':'') + '$' + neto.toLocaleString('es-AR'); }
   }
 
-  async function movAjustarSaldoInicial(input) {
+  let editingSaldoMensual = false;
+
+  function renderSaldoMensualItem(mesFiltro, saldoInicial) {
+    const item = document.getElementById('movSaldoItem');
+    if (!item) return;
+    if (!mesFiltro) {
+      item.innerHTML = `<span style="color:var(--muted)">Saldo mensual</span><span style="font-family:var(--mono);font-weight:700">—</span>`;
+      return;
+    }
+    if (editingSaldoMensual) {
+      item.innerHTML = `
+        <span style="color:var(--muted)">Saldo mensual</span>
+        <input id="movSaldoInicialInput" type="number" class="form-input" value="${Math.round(saldoInicial*100)/100}" style="width:120px;text-align:right;font-family:var(--mono);font-weight:700;padding:5px 8px;font-size:13px" onkeydown="if(event.key==='Enter')movGuardarSaldoInicial();if(event.key==='Escape'){editingSaldoMensual=false;renderMovimientos();}">
+        <button class="btn btn-ghost" style="font-size:10px;padding:4px 8px" onclick="editingSaldoMensual=false;renderMovimientos()">Cancelar</button>
+        <button class="btn btn-accent" style="font-size:10px;padding:4px 8px" onclick="movGuardarSaldoInicial()">Guardar</button>`;
+      const input = document.getElementById('movSaldoInicialInput');
+      if (input) input.focus();
+    } else {
+      item.innerHTML = `
+        <span style="color:var(--muted)">Saldo mensual</span>
+        <span style="font-family:var(--mono);font-weight:700">${saldoInicial>=0?'+':''}$${Math.round(saldoInicial).toLocaleString('es-AR')}</span>
+        <button class="btn btn-ghost" style="font-size:10px;padding:4px 8px;margin-left:4px" onclick="editingSaldoMensual=true;renderMovimientos()">Editar</button>`;
+    }
+  }
+
+  async function movGuardarSaldoInicial() {
     const mesFiltro = val('movMes');
-    if (!mesFiltro) { renderMovimientos(); return; }
+    const input = document.getElementById('movSaldoInicialInput');
+    editingSaldoMensual = false;
+    if (!mesFiltro || !input) { renderMovimientos(); return; }
     const nuevoValor = parseFloat(input.value);
     if (isNaN(nuevoValor)) { renderMovimientos(); return; }
     const actual = DB.movimientos.filter(m => m.fecha && m.fecha.includes('-') && m.fecha.slice(0,7) < mesFiltro).reduce((s,m) => s + (Number(m.monto)||0), 0);
