@@ -2304,6 +2304,7 @@
               </select>
             </div>
             <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" style="font-size:12px" onclick="movExportCSV()">Descargar CSV</button>
               <button class="btn btn-ghost" style="font-size:12px" onclick="toggleFinCatEditor()">Editar categorías</button>
               <button class="btn btn-accent" style="font-size:12px;white-space:nowrap" onclick="openMovModal()">+ Nuevo movimiento</button>
             </div>
@@ -3229,6 +3230,28 @@
     } else {
       sel.value = seen.has(current) ? current : '';
     }
+  }
+
+  function movExportCSV() {
+    const mesFiltro = val('movMes');
+    const datos = DB.movimientos
+      .filter(m => !mesFiltro || movMonthKey(m.fecha) === mesFiltro)
+      .slice()
+      .sort((a,b) => movSortKey(a.fecha).localeCompare(movSortKey(b.fecha)));
+    if (!datos.length) { alert('No hay movimientos para exportar en este filtro.'); return; }
+    const header = ['Fecha','Descripcion','Categoria','Tipo','Monto','Saldo'];
+    const rows = datos.map(m => [
+      m.fecha || '', m.description || '', m.cat || '',
+      m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso', m.monto, m.saldo
+    ]);
+    const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const nombreMes = mesFiltro ? mesKeyLabel(mesFiltro).toLowerCase().replace(' ', '-') : 'todos-los-movimientos';
+    const a = document.createElement('a');
+    a.href = url; a.download = `movimientos-${nombreMes}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
