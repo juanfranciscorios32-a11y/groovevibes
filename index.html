@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SISTEMA OS — Dashboard Personal</title>
+<title>SISTEMA OS — Panel Personal</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1779,7 +1779,7 @@
 
     <div id="authForm">
       <div class="form-group">
-        <label class="form-label">Email</label>
+        <label class="form-label">Correo electrónico</label>
         <input class="form-input" type="email" id="authEmail" placeholder="tu@email.com">
       </div>
       <div class="form-group">
@@ -1798,13 +1798,13 @@
   <aside class="sidebar">
     <div class="logo">
       <div class="logo-text">SISTEMA OS</div>
-      <div class="logo-sub">Personal Operating System</div>
+      <div class="logo-sub">Sistema operativo personal</div>
     </div>
 
     <nav class="nav-section">
       <div class="nav-label">Principal</div>
       <div class="nav-item active" onclick="setPanel('home')">
-        Dashboard
+        Inicio
       </div>
       <div class="nav-item" onclick="setPanel('calendar')">
         Calendario
@@ -1870,7 +1870,7 @@
     <!-- TOPBAR -->
     <div class="topbar">
       <div class="topbar-left">
-        <div class="page-title" id="pageTitle">Dashboard</div>
+        <div class="page-title" id="pageTitle">Inicio</div>
         <div class="page-date" id="pageDate"></div>
       </div>
       <div class="topbar-actions">
@@ -1905,7 +1905,7 @@
           </div>
           <div class="card">
             <div class="section-header">
-              <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Next Actions</div>
+              <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Próximas acciones</div>
               <div class="section-link" onclick="setPanel('tasks')">Proyectos</div>
             </div>
             <div id="homeNextActions"></div>
@@ -1947,7 +1947,7 @@
               <div class="section-header">
                 <div class="section-title">
                   <div class="section-dot" style="background:var(--accent5)"></div>
-                  Portfolio — Snapshot
+                  Cartera — Resumen
                 </div>
                 <div class="section-link" onclick="setPanel('finance')">Ver detalle</div>
               </div>
@@ -2005,7 +2005,7 @@
             <div class="empty-state" style="padding:20px 0">
               <div class="empty-icon"></div>
               <div class="empty-title">Sin hábitos configurados</div>
-              <div class="empty-desc">Definí los hábitos que querés trackear</div>
+              <div class="empty-desc">Definí los hábitos que querés seguir</div>
               <button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="setPanel('habits')">Configurar</button>
             </div>
           </div>
@@ -2047,7 +2047,10 @@
       <div class="panel" id="panel-tasks">
         <div class="section-header" style="margin-bottom:16px">
           <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Proyectos y áreas</div>
-          <button class="btn btn-accent" id="npToggleBtn" onclick="npOpen()">+ Nuevo Proyecto</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" id="btnArchProjects" onclick="toggleArchivedProjects()">Ver archivados</button>
+            <button class="btn btn-accent" id="npToggleBtn" onclick="npOpen()">+ Nuevo Proyecto</button>
+          </div>
         </div>
         <div class="card np-form" id="npForm" style="display:none">
           <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="np_title" placeholder="Ej: Producción de show XYZ" onkeydown="if(event.key==='Enter')npSave();if(event.key==='Escape')npCancel();"></div>
@@ -2075,7 +2078,10 @@
       <div class="panel" id="panel-todos">
         <div class="section-header" style="margin-bottom:16px">
           <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Todas las tareas</div>
-          <button class="btn btn-accent" onclick="openModal('Tarea')">+ Nueva tarea</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" id="btnArchTasks" onclick="toggleArchivedTasks()">Ver finalizadas</button>
+            <button class="btn btn-accent" onclick="openModal('Tarea')">+ Nueva tarea</button>
+          </div>
         </div>
         <div class="card">
           <div id="allTasksList"></div>
@@ -2157,15 +2163,15 @@
       <div class="panel" id="panel-shows">
         <div class="section-header" style="margin-bottom:12px">
           <div></div>
-          <button class="btn btn-accent" onclick="openModal('Show / Evento')">+ Nuevo show</button>
+          <button class="btn btn-accent" onclick="openModal('Show')">+ Nuevo show</button>
         </div>
         <div class="context-tabs" id="showsStageTabs"></div>
         <div class="card">
           <table class="shows-table">
             <thead>
               <tr>
-                <th>Show / Evento</th><th>Ciudad/Venue</th><th>Fecha</th>
-                <th>Fee</th><th>Etapa booking</th><th>Artista</th>
+                <th>Show</th><th>Ciudad / Lugar</th><th>Fecha</th>
+                <th>Cachet</th><th>Etapa de contratación</th><th>Artista</th>
               </tr>
             </thead>
             <tbody id="showsTableBody"></tbody>
@@ -2388,7 +2394,7 @@
         <!-- HEADER: mes activo + navegación -->
         <div class="habit-topbar">
           <div>
-            <div class="section-title" style="margin-bottom:2px"><div class="section-dot" style="background:var(--accent4)"></div>Habit Tracker</div>
+            <div class="section-title" style="margin-bottom:2px"><div class="section-dot" style="background:var(--accent4)"></div>Seguimiento de hábitos</div>
             <div id="habitMonthLabel" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
@@ -2463,16 +2469,7 @@
       <select class="form-input" id="newType" onchange="updateForm()">
         <option>Tarea</option>
         <option>Proyecto</option>
-        <option>Show / Evento</option>
-        <option>Contacto</option>
-        <option>Organización</option>
-        <option>Artista</option>
-        <option>Materia</option>
-        <option>Documento</option>
-        <option>Nota</option>
-        <option>Objetivo</option>
-        <option>Ingreso</option>
-        <option>Gasto</option>
+        <option>Show</option>
       </select>
     </div>
     <div id="dynamicFields"></div>
@@ -2601,9 +2598,10 @@
 
   const PROJECT_TYPES = { show:'Show', produccion:'Producción', diseno:'Diseño', acustica:'Acústica', facultad:'Facultad', agencia:'Agencia', comercial:'Comercial', personal:'Personal', otro:'Otro' };
   const PROJECT_TYPES_CREATE = { show:'Show', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' };
-  const PROJECT_STATUS = { idea:'Idea', planificacion:'Planificación', en_desarrollo:'En desarrollo', esperando_respuesta:'Esperando respuesta', en_ejecucion:'En ejecución', finalizado:'Finalizado', cancelado:'Cancelado' };
+  const PROJECT_STATUS = { idea:'Pendiente', planificacion:'Pendiente', en_desarrollo:'En proceso', esperando_respuesta:'Pendiente', en_ejecucion:'En proceso', finalizado:'Finalizado', cancelado:'Cancelado' };
+  function isProjArchived(p) { return ['finalizado','cancelado'].includes(p.status); }
   const BOOKING_STAGES = ['lead','contactado','respondio','negociacion','confirmado','contrato','show','pago','finalizado'];
-  const BOOKING_LABELS = { lead:'Lead', contactado:'Contactado', respondio:'Respondió', negociacion:'Negociación', confirmado:'Confirmado', contrato:'Contrato', show:'Show', pago:'Pago', finalizado:'Finalizado' };
+  const BOOKING_LABELS = { lead:'Prospecto', contactado:'Contactado', respondio:'Respondió', negociacion:'Negociación', confirmado:'Confirmado', contrato:'Contrato', show:'Show', pago:'Pago', finalizado:'Finalizado' };
 
   function projectById(id) { return DB.projects.find(p => p.id === id); }
   function contactById(id) { return DB.contacts.find(c => c.id === id); }
@@ -2615,7 +2613,7 @@
   function phaseById(id) { return DB.phases.find(ph => ph.id === id); }
   function phasesOf(projectId) { return DB.phases.filter(ph => ph.project_id === projectId).sort((a,b) => a.sequence_index - b.sequence_index); }
   function areaSortOrder(areaId) { const a = areaById(areaId); return a ? a.sort_order : 99; }
-  const TASK_STATUS_LABELS = { backlog:'Backlog', to_do:'To Do', in_progress:'En progreso', blocked:'Bloqueada', done:'Hecha' };
+  const TASK_STATUS_LABELS = { backlog:'Pendiente', to_do:'Pendiente', in_progress:'En proceso', blocked:'Pendiente', done:'Finalizado' };
   const TIPO_TAREA_LABELS = { trabajo_practico:'Trabajo Práctico', examen:'Examen', preparacion_examen:'Preparación de examen', revision_contenidos:'Revisión de contenidos', sesion_estudio:'Sesión de estudio' };
   function blockingTaskOf(taskId) {
     const dep = DB.taskDependencies.find(d => d.task_id === taskId);
@@ -2648,7 +2646,7 @@
     DB.tasks.filter(t => (t.scheduled_date || t.due_date) && !t.done).forEach(t => {
       evs.push({ date: t.scheduled_date || t.due_date, title: t.title, type: 'task', color: 'var(--accent2)', projectId: t.project_id, startTime: t.scheduled_date ? (t.start_time || null) : null, endTime: t.scheduled_date ? (t.end_time || null) : null });
     });
-    DB.projects.filter(p => p.type === 'show' && p.deadline).forEach(p => {
+    DB.projects.filter(p => p.type === 'show' && p.deadline && !isProjArchived(p)).forEach(p => {
       evs.push({ date: p.deadline, title: p.name, type: 'show', color: 'var(--accent3)', projectId: p.id });
     });
     DB.faculty.forEach(f => {
@@ -2829,8 +2827,8 @@
      ========================================================= */
   const panels = ['home','inbox','calendar','tasks','todos','shows','faculty','contacts','orgs','artists','finance','habits','goals','docs','notes','settings'];
   const panelTitles = {
-    home: 'Dashboard', inbox: 'Inbox', calendar: 'Calendario', tasks: 'Proyectos', todos: 'Tareas',
-    shows: 'Shows & Eventos', faculty: 'Facultad', contacts: 'Contactos', orgs: 'Organizaciones', artists: 'Artistas',
+    home: 'Inicio', inbox: 'Bandeja de entrada', calendar: 'Calendario', tasks: 'Proyectos', todos: 'Tareas',
+    shows: 'Shows y eventos', faculty: 'Facultad', contacts: 'Contactos', orgs: 'Organizaciones', artists: 'Artistas',
     finance: 'Finanzas', habits: 'Hábitos', goals: 'Objetivos', docs: 'Documentos', notes: 'Notas', settings: 'Configuración'
   };
 
@@ -2864,15 +2862,16 @@
   function openModal(type) {
     document.getElementById('modalOverlay').classList.add('open');
     const newTypeSel = document.getElementById('newType');
-    if (type === 'Proyecto') {
-      newTypeSel.innerHTML = Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
-      newTypeSel.value = 'show';
-    } else if (type === 'Ingreso' || type === 'Gasto') {
+    const principales = ['Tarea', 'Proyecto', 'Show'];
+    if (type === 'Ingreso' || type === 'Gasto') {
       newTypeSel.innerHTML = '<option>Ingreso</option><option>Gasto</option>';
       newTypeSel.value = type;
+    } else if (!type || type === 'Show / Evento' || principales.includes(type)) {
+      newTypeSel.innerHTML = principales.map(t => `<option>${t}</option>`).join('');
+      newTypeSel.value = type === 'Show / Evento' ? 'Show' : (type || 'Tarea');
     } else {
-      newTypeSel.innerHTML = '<option>Tarea</option><option>Proyecto</option><option>Show / Evento</option><option>Contacto</option><option>Organización</option><option>Artista</option><option>Materia</option><option>Documento</option><option>Nota</option><option>Objetivo</option><option>Ingreso</option><option>Gasto</option>';
-      if (type) newTypeSel.value = type;
+      newTypeSel.innerHTML = `<option>${type}</option>`;
+      newTypeSel.value = type;
     }
     updateForm();
   }
@@ -2884,10 +2883,6 @@
      ========================================================= */
   function updateForm() {
     const newTypeSel = document.getElementById('newType');
-    if (newTypeSel.value === 'Proyecto' || newTypeSel.value === 'Show / Evento') {
-      newTypeSel.innerHTML = Object.entries(PROJECT_TYPES_CREATE).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
-      newTypeSel.value = 'show';
-    }
     const type = newTypeSel.value;
     const wrap = document.getElementById('dynamicFields');
     const projOptions = DB.projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
@@ -2899,16 +2894,13 @@
     if (type === 'Tarea') {
       html = `
         <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="f_title" placeholder="Ej: Enviar rider técnico..."></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Proyecto</label><select class="form-input" id="f_project" onchange="onTaskProjectChange()"><option value="">— Sin proyecto —</option>${projOptions}</select></div>
-          <div class="form-group"><label class="form-label">Etapa</label><select class="form-input" id="f_phase"><option value="">— Sin etapa —</option></select></div>
-        </div>
+        <div class="form-group"><label class="form-label">Proyecto</label><select class="form-input" id="f_project"><option value="">— Sin proyecto —</option>${projOptions}</select></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Área</label><select class="form-input" id="f_area"><option value="">— Heredar del proyecto —</option>${DB.areas.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}</select></div>
           <div class="form-group"><label class="form-label">Contacto</label><select class="form-input" id="f_contact"><option value="">— Sin contacto —</option>${contactOptions}</select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="f_status"><option value="backlog">Backlog</option><option value="to_do" selected>To Do</option><option value="in_progress">In Progress</option><option value="blocked">Blocked</option><option value="done">Done</option></select></div>
+          <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="f_status"><option value="to_do" selected>Pendiente</option><option value="in_progress">En proceso</option><option value="done">Finalizado</option></select></div>
           <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="f_priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
         </div>
         <div class="form-row">
@@ -2917,34 +2909,22 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Hora (opcional)</label><input class="form-input" type="time" id="f_starttime"></div>
-        </div>
-        <div class="form-row">
           <div class="form-group"><label class="form-label">Estimación (min)</label><input class="form-input" type="number" id="f_estimate" placeholder="Ej: 60"></div>
-          <div class="form-group"><label class="form-label">Tipo (Facultad)</label><select class="form-input" id="f_tipotarea"><option value="">—</option><option value="trabajo_practico">Trabajo Práctico</option><option value="examen">Examen</option><option value="preparacion_examen">Preparación de examen</option><option value="revision_contenidos">Revisión de contenidos</option><option value="sesion_estudio">Sesión de estudio</option></select></div>
         </div>
-        <div class="form-group"><label class="form-label">Depende de</label><select class="form-input" id="f_dependson"><option value="">— Ninguna —</option>${DB.tasks.filter(t=>!t.done).map(t => `<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('')}</select></div>
         <div class="form-group" style="display:flex;gap:18px;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_createEvent" checked> Crear evento en Calendar</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_createEvent" checked> Crear evento en el calendario</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="f_recurring"> Tarea recurrente (semanal)</label>
         </div>`;
-    } else if (type === 'Proyecto' || type === 'Show / Evento' || PROJECT_TYPES_CREATE[type]) {
-      const isShow = type === 'Show / Evento' || type === 'show';
-      const presetProjType = PROJECT_TYPES_CREATE[type] ? type : (isShow ? 'show' : '');
+    } else if (type === 'Proyecto' || type === 'Show') {
+      const isShow = type === 'Show';
       html = `
-        <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="f_title" placeholder="${isShow?'Ej: Show Club XYZ':'Ej: Rediseño de marca'}"></div>
+        <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="f_title" placeholder="${isShow ? 'Ej: Show Club XYZ' : 'Ej: Rediseño de marca'}"></div>
+        ${isShow ? '' : `<div class="form-group"><label class="form-label">Categoría</label><select class="form-input" id="f_categoria"><option value="facultad">Facultad</option><option value="agencia">Agencia</option><option value="personal">Personal</option></select></div>`}
         <div class="form-row">
+          <div class="form-group"><label class="form-label">Estado</label><select class="form-input" id="f_status"><option value="planificacion" selected>Pendiente</option><option value="en_ejecucion">En proceso</option><option value="finalizado">Finalizado</option></select></div>
           <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="f_priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
-          <div class="form-group" style="${presetProjType==='personal' ? '' : 'display:none'}"><label class="form-label">Tipo personal</label><select class="form-input" id="f_tipopersonal"><option value="">—</option><option value="investigacion">Investigación</option><option value="ingreso">Ingreso</option><option value="ambos">Ambos</option></select></div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" type="date" id="f_start" value="${todayISO()}"></div>
-          <div class="form-group"><label class="form-label">Deadline / Fecha</label><input class="form-input" type="date" id="f_date" value="${addDays(todayISO(),7)}"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Organización / Venue</label><select class="form-input" id="f_org"><option value="">— Ninguna —</option>${orgOptions}</select></div>
-          <div class="form-group"><label class="form-label">Artista</label><select class="form-input" id="f_artist"><option value="">— Ninguno —</option>${artistOptions}</select></div>
-        </div>
-        <div class="form-group"><label class="form-label">Objetivo</label><input class="form-input" id="f_objective" placeholder="¿Qué resultado buscás con este proyecto?"></div>`;
+        <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="f_date" value="${addDays(todayISO(),7)}"></div>`;
     } else if (type === 'Contacto') {
       html = `
         <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="f_title" placeholder="Nombre completo"></div>
@@ -2953,7 +2933,7 @@
           <div class="form-group"><label class="form-label">Rol</label><input class="form-input" id="f_role" placeholder="Ej: Management, Booker..."></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="f_email" type="email"></div>
+          <div class="form-group"><label class="form-label">Correo electrónico</label><input class="form-input" id="f_email" type="email"></div>
           <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="f_phone"></div>
         </div>`;
     } else if (type === 'Organización') {
@@ -2961,7 +2941,7 @@
         <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="f_title" placeholder="Ej: Club XYZ"></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Tipo</label>
-            <select class="form-input" id="f_orgtype"><option value="venue">Venue</option><option value="empresa">Empresa</option><option value="agencia">Agencia</option><option value="proveedor">Proveedor</option><option value="institucion">Institución</option></select>
+            <select class="form-input" id="f_orgtype"><option value="venue">Lugar</option><option value="empresa">Empresa</option><option value="agencia">Agencia</option><option value="proveedor">Proveedor</option><option value="institucion">Institución</option></select>
           </div>
           <div class="form-group"><label class="form-label">Ciudad</label><input class="form-input" id="f_city"></div>
         </div>`;
@@ -2973,7 +2953,7 @@
           <div class="form-group"><label class="form-label">País</label><input class="form-input" id="f_country"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Fee</label><input class="form-input" id="f_fee" placeholder="USD"></div>
+          <div class="form-group"><label class="form-label">Cachet (USD)</label><input class="form-input" id="f_fee" placeholder="USD"></div>
           <div class="form-group"><label class="form-label">Contacto (management)</label><select class="form-input" id="f_contact"><option value="">— Ninguno —</option>${contactOptions}</select></div>
         </div>`;
     } else if (type === 'Materia') {
@@ -2999,7 +2979,7 @@
         <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="f_title"></div>
         <div class="form-group"><label class="form-label">Contenido</label><input class="form-input" id="f_content"></div>
         <div class="form-group"><label class="form-label">Proyecto</label><select class="form-input" id="f_project"><option value="">— Sin proyecto —</option>${projOptions}</select></div>
-        <div class="form-group"><label class="form-label">Tags (separados por coma)</label><input class="form-input" id="f_tags" placeholder="ideas, estrategia..."></div>`;
+        <div class="form-group"><label class="form-label">Etiquetas (separadas por coma)</label><input class="form-input" id="f_tags" placeholder="ideas, estrategia..."></div>`;
     } else if (type === 'Objetivo') {
       html = `
         <div class="form-group"><label class="form-label">Objetivo</label><input class="form-input" id="f_title" placeholder="Ej: Facturar $60K en el año"></div>
@@ -3281,39 +3261,33 @@
         const statusVal = val('f_status') || 'to_do';
         const { data, error } = await supabaseClient.from('tasks').insert([{
           title, project_id: projId, contact_id: val('f_contact') || null,
-          phase_id: val('f_phase') || null, area_id: areaId,
+          phase_id: null, area_id: areaId,
           due_date: val('f_date') || null, scheduled_date: val('f_scheduled') || null,
           priority: val('f_priority').toLowerCase(), status: statusVal, done: statusVal === 'done',
           time_estimate: val('f_estimate') ? parseInt(val('f_estimate')) : null,
           start_time: val('f_starttime') || null,
           end_time: val('f_starttime') ? addMinutesToTime(val('f_starttime'), val('f_estimate') ? parseInt(val('f_estimate')) : 60) : null,
           is_recurring: document.getElementById('f_recurring').checked,
-          tipo_tarea: val('f_tipotarea') || null,
+          tipo_tarea: null,
           create_event: document.getElementById('f_createEvent').checked
         }]).select();
         if (error) throw error;
         DB.tasks.push(data[0]);
-        const dependsOnId = val('f_dependson');
-        if (dependsOnId) {
-          const { data: depData, error: depErr } = await supabaseClient.from('task_dependencies').insert([{
-            task_id: data[0].id, depends_on_id: dependsOnId
-          }]).select();
-          if (!depErr && depData) DB.taskDependencies.push(depData[0]);
-        }
         renderAllTasks(); renderProjects();
 
-      } else if (type === 'Proyecto' || type === 'Show / Evento' || PROJECT_TYPES_CREATE[type]) {
-        const isShow = type === 'Show / Evento' || type === 'show';
-        const projType = PROJECT_TYPES_CREATE[type] ? type : (isShow ? 'show' : 'otro');
-        const areaName = { show:'Producción', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' }[projType] || '';
+      } else if (type === 'Proyecto' || type === 'Show') {
+        const isShow = type === 'Show';
+        const projType = isShow ? 'show' : (val('f_categoria') || 'personal');
+        const areaName = { show:'Producción', facultad:'Facultad', agencia:'Agencia', personal:'Personal' }[projType] || '';
         const areaId = (DB.areas.find(a => a.name === areaName) || {}).id || null;
+        const estado = val('f_status') || 'planificacion';
         const { data, error } = await supabaseClient.from('projects').insert([{
-          name: title, type: projType, status: 'planificacion',
-          priority: val('f_priority').toLowerCase(), start_date: val('f_start') || todayISO(),
-          deadline: val('f_date') || null, responsible: 'Vos', org_id: val('f_org') || null,
-          artist_id: val('f_artist') || null, objective: val('f_objective'), description: '',
-          progress: 0, booking_stage: isShow ? 'lead' : '',
-          area_id: areaId, tipo_personal: projType === 'personal' ? (val('f_tipopersonal') || null) : null
+          name: title, type: projType, status: estado,
+          priority: val('f_priority').toLowerCase(), start_date: todayISO(),
+          deadline: val('f_date') || null, responsible: 'Vos', org_id: null,
+          artist_id: null, objective: '', description: '',
+          progress: estado === 'finalizado' ? 100 : 0, booking_stage: isShow ? 'lead' : '',
+          area_id: areaId, tipo_personal: null
         }]).select();
         if (error) throw error;
         const newProj = data[0];
@@ -3481,7 +3455,7 @@
     const badge = document.getElementById('inboxBadge');
     if (badge) { badge.style.display = pending.length ? 'inline-block' : 'none'; badge.textContent = pending.length; }
     if (!pending.length) {
-      list.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="empty-icon"></div><div class="empty-title">Inbox vacío</div><div class="empty-desc">Todo procesado. Buen trabajo.</div></div>`;
+      list.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="empty-icon"></div><div class="empty-title">Bandeja vacía</div><div class="empty-desc">Todo procesado. Buen trabajo.</div></div>`;
       return;
     }
     list.innerHTML = pending.map(i => `
@@ -3545,6 +3519,9 @@
     }
   }
 
+  let showArchivedProjects = false;
+  function toggleArchivedProjects() { showArchivedProjects = !showArchivedProjects; renderProjects(); }
+
   function renderProjects() {
     const tabsEl = document.getElementById('projTypeTabs');
     const gridEl = document.getElementById('projectsGrid');
@@ -3554,12 +3531,15 @@
     const cats = [['todos','Todos'],['show','Shows'],['produccion','Producción'],['agencia','Agencia'],['facultad','Facultad'],['personal','Personal'],['otro','Otros']];
     if (tabsEl) tabsEl.innerHTML = cats.map(([k,l]) => `<button class="ctx-tab ${projFilter===k?'active':''}" onclick="setProjFilter('${k}')">${l}</button>`).join('');
 
-    const list = projFilter === 'todos' ? DB.projects : DB.projects.filter(p => p.type === projFilter);
+    const base = DB.projects.filter(p => showArchivedProjects ? isProjArchived(p) : !isProjArchived(p));
+    const list = projFilter === 'todos' ? base : base.filter(p => p.type === projFilter);
+    const btnArch = document.getElementById('btnArchProjects');
+    if (btnArch) btnArch.textContent = showArchivedProjects ? 'Ver activos' : 'Ver archivados';
     const badge = document.getElementById('projectsBadge');
     if (badge) { const active = DB.projects.filter(p => !['finalizado','cancelado'].includes(p.status)).length; badge.style.display = active ? 'inline-block':'none'; badge.textContent = active; }
 
     if (!list.length) {
-      gridEl.innerHTML = `<div class="empty-state" style="padding:60px 20px;grid-column:1/-1"><div class="empty-icon" style="font-size:40px"></div><div class="empty-title">Sin proyectos en esta categoría</div><button class="btn btn-accent" style="margin-top:18px" onclick="npOpen()">+ Crear proyecto</button></div>`;
+      gridEl.innerHTML = `<div class="empty-state" style="padding:60px 20px;grid-column:1/-1"><div class="empty-icon" style="font-size:40px"></div><div class="empty-title">${showArchivedProjects ? 'Sin proyectos archivados' : 'Sin proyectos en esta categoría'}</div>${showArchivedProjects ? '' : '<button class="btn btn-accent" style="margin-top:18px" onclick="npOpen()">+ Crear proyecto</button>'}</div>`;
     } else {
       gridEl.innerHTML = list.map(p => {
         const pending = tasksOf(p.id).filter(t => !t.done);
@@ -3683,7 +3663,7 @@
         ${open.map(qaTaskRow).join('')}
         ${qaAddRowHtml(p.id, phaseId, bId)}
         ${done.length ? `
-          <div class="qa-completed-toggle" onclick="qaToggleCompleted('${bId}')" id="${bId}_toggle" data-count="${done.length}">Mostrar completadas (${done.length})</div>
+          <div class="qa-completed-toggle" onclick="qaToggleCompleted('${bId}')" id="${bId}_toggle" data-count="${done.length}">Mostrar finalizadas (${done.length})</div>
           <div class="qa-completed-list" id="${bId}_done" style="display:none">${done.map(qaTaskRow).join('')}</div>` : ''}
       </div>`;
     };
@@ -3756,7 +3736,7 @@
     list.style.display = isOpen ? 'none' : 'block';
     if (toggle) {
       const count = toggle.dataset.count;
-      toggle.textContent = isOpen ? `Mostrar completadas (${count})` : `Ocultar completadas (${count})`;
+      toggle.textContent = isOpen ? `Mostrar finalizadas (${count})` : `Ocultar finalizadas (${count})`;
     }
   }
 
@@ -3842,6 +3822,12 @@
               ${Object.entries(typeOptions).map(([k,v]) => `<option value="${k}" ${p.type===k?'selected':''}>${v}</option>`).join('')}
             </select>
           </div>
+          <div class="pd-meta-field">
+            <span class="pd-meta-label">Estado</span>
+            <select class="form-input" onchange="pdSetStatus('${p.id}',this.value)">
+              ${(() => { const g = isProjArchived(p) ? 'finalizado' : (['en_ejecucion','en_desarrollo'].includes(p.status) ? 'en_ejecucion' : 'planificacion'); return [['planificacion','Pendiente'],['en_ejecucion','En proceso'],['finalizado','Finalizado']].map(([k,v]) => `<option value="${k}" ${g===k?'selected':''}>${v}</option>`).join(''); })()}
+            </select>
+          </div>
         </div>
         ${renderPhaseChips(p.id)}
         <textarea class="pd-description" placeholder="Descripción general del proyecto..." onchange="pdSaveField('${p.id}','description',this.value)">${escapeHtml(p.description||'')}</textarea>
@@ -3860,6 +3846,27 @@
     } catch (err) {
       alert('Error guardando: ' + err.message);
     }
+  }
+
+  async function pdSetStatus(id, nuevo) {
+    const p = projectById(id);
+    if (!p) return;
+    try {
+      const patch = { status: nuevo };
+      if (nuevo === 'finalizado') patch.progress = 100;
+      const { error } = await supabaseClient.from('projects').update(patch).eq('id', id);
+      if (error) throw error;
+      p.status = nuevo;
+      if (nuevo === 'finalizado') p.progress = 100;
+      if (nuevo === 'finalizado') {
+        closeProjectModal();
+        alert('Proyecto finalizado: se archivó y ya no aparece en la vista principal. Lo encontrás en "Ver archivados".');
+      } else {
+        renderProjects();
+        if (selectedProjectId) renderProjectDetail(selectedProjectId);
+      }
+      renderHome(); renderShows();
+    } catch (err) { alert('Error actualizando estado: ' + err.message); }
   }
 
   async function pdSetType(id, newType) {
@@ -3909,13 +3916,30 @@
   /* =========================================================
      RENDER — TAREAS
      ========================================================= */
+  let showArchivedTasks = false;
+  function toggleArchivedTasks() { showArchivedTasks = !showArchivedTasks; renderAllTasks(); }
+
+  async function toggleTaskProceso(id) {
+    const t = DB.tasks.find(x => x.id === id);
+    if (!t || t.done) return;
+    const nuevo = t.status === 'in_progress' ? 'to_do' : 'in_progress';
+    try {
+      const { error } = await supabaseClient.from('tasks').update({ status: nuevo }).eq('id', id);
+      if (error) throw error;
+      t.status = nuevo;
+      renderAllTasks();
+    } catch (err) { alert('Error actualizando tarea: ' + err.message); }
+  }
+
   function renderAllTasks() {
     const wrap = document.getElementById('allTasksList');
     if (!wrap) return;
     const pending = sortTasksPriority(DB.tasks.filter(t => !t.done));
     const done = DB.tasks.filter(t => t.done).sort((a,b) => (b.due_date||b.scheduled_date||'').localeCompare(a.due_date||a.scheduled_date||''));
-    const sorted = pending.concat(done);
-    if (!sorted.length) { wrap.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon"></div><div class="empty-title">Sin tareas</div></div>`; return; }
+    const sorted = showArchivedTasks ? done : pending;
+    const btnArch = document.getElementById('btnArchTasks');
+    if (btnArch) btnArch.textContent = showArchivedTasks ? 'Ver pendientes' : 'Ver finalizadas';
+    if (!sorted.length) { wrap.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon"></div><div class="empty-title">${showArchivedTasks ? 'Sin tareas finalizadas' : 'Sin tareas pendientes'}</div></div>`; return; }
     wrap.innerHTML = sorted.map(t => {
       const proj = projectById(t.project_id);
       const area = areaById(t.area_id) || (proj ? areaById(proj.area_id) : null);
@@ -3929,6 +3953,7 @@
         <div class="task-text ${t.done?'done':''}">${escapeHtml(t.title)}
           <div style="font-size:10.5px;color:${overdue?'var(--red)':'var(--muted)'};margin-top:2px">${fmtDate(displayDate)}${proj ? ' · ' + escapeHtml(proj.name) : ''}${area ? ' · ' + escapeHtml(area.name) : ''}${phase ? ' · ' + escapeHtml(phase.name) : ''}${blocker ? ' · bloqueada por: ' + escapeHtml(blocker.title) : ''}</div>
         </div>
+        ${!t.done ? `<span class="proj-task-chip" style="cursor:pointer;margin-right:8px" title="Cambiar entre Pendiente y En proceso" onclick="toggleTaskProceso('${t.id}')">${t.status==='in_progress'?'En proceso':'Pendiente'}</span>` : ''}
         <span class="task-priority p-${t.priority==='alta'?'high':t.priority==='baja'?'low':'med'}">${t.priority}</span>
       </div>`;
     }).join('');
@@ -3945,10 +3970,10 @@
     const tbody = document.getElementById('showsTableBody');
     if (!tbody) return;
     if (tabsEl) tabsEl.innerHTML = ['todos', ...BOOKING_STAGES].map(s => `<button class="ctx-tab ${showStageFilter===s?'active':''}" onclick="setShowStageFilter('${s}')">${s==='todos'?'Todos':BOOKING_LABELS[s]}</button>`).join('');
-    let shows = DB.projects.filter(p => p.type === 'show');
+    let shows = DB.projects.filter(p => p.type === 'show' && !isProjArchived(p));
     if (showStageFilter !== 'todos') shows = shows.filter(p => p.booking_stage === showStageFilter);
     if (!shows.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin shows en esta etapa</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin shows en esta etapa</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Show')">+ Nuevo show</button></div></td></tr>`;
       return;
     }
     tbody.innerHTML = shows.map(p => {
@@ -3958,7 +3983,7 @@
         <td>${org ? escapeHtml(org.name) + (org.city ? ' · ' + escapeHtml(org.city) : '') : '—'}</td>
         <td>${fmtDate(p.deadline)}</td>
         <td class="show-fee">${artist && artist.fee ? '$'+artist.fee : '—'}</td>
-        <td><span class="show-status status-${p.booking_stage==='confirmado'||p.booking_stage==='contrato'||p.booking_stage==='pago'||p.booking_stage==='finalizado'?'confirmed':p.booking_stage==='negociacion'?'nego':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></td>
+        <td><span class="show-status status-${p.booking_stage==='confirmado'||p.booking_stage==='contrato'||p.booking_stage==='pago'||p.booking_stage==='finalizado'?'confirmed':p.booking_stage==='negociacion'?'nego':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Prospecto'}</span></td>
         <td>${artist ? escapeHtml(artist.name) : '—'}</td>
       </tr>`;
     }).join('');
@@ -4036,7 +4061,7 @@
     wrap.innerHTML = `<div class="projects-grid">` + DB.artists.map(a => {
       const c = contactById(a.contact_id);
       const shows = DB.projects.filter(p => p.artist_id === a.id);
-      return `<div class="project-card"><div class="proj-name">${escapeHtml(a.name)}</div><div class="proj-sub">${escapeHtml(a.genre)||'—'} ${a.country?'· '+escapeHtml(a.country):''} ${a.fee?'· $'+a.fee:''}</div><div class="proj-tasks">${c?`<span class="proj-task-chip">Mgmt: ${escapeHtml(c.name)}</span>`:''}<span class="proj-task-chip">${shows.length} proyecto(s)</span></div></div>`;
+      return `<div class="project-card"><div class="proj-name">${escapeHtml(a.name)}</div><div class="proj-sub">${escapeHtml(a.genre)||'—'} ${a.country?'· '+escapeHtml(a.country):''} ${a.fee?'· $'+a.fee:''}</div><div class="proj-tasks">${c?`<span class="proj-task-chip">Representante: ${escapeHtml(c.name)}</span>`:''}<span class="proj-task-chip">${shows.length} proyecto(s)</span></div></div>`;
     }).join('') + `</div>`;
   }
 
@@ -4346,7 +4371,7 @@
     }
 
     const showsEl = document.getElementById('homeShows');
-    if (showsEl) { const shows = DB.projects.filter(p => p.type==='show' && !['finalizado','cancelado'].includes(p.status)).slice(0,3); showsEl.innerHTML = shows.length ? shows.map(p => `<div class="show-item" onclick="setPanel('tasks');selectProject('${p.id}')"><div class="show-header"><span class="show-title">${escapeHtml(p.name)}</span><span class="show-status status-${p.booking_stage==='confirmado'?'confirmed':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Lead'}</span></div><div class="show-meta"><span>${fmtDate(p.deadline)}</span></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon"></div><div class="empty-title">Sin shows cargados</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Show / Evento')">+ Nuevo show</button></div>`; }
+    if (showsEl) { const shows = DB.projects.filter(p => p.type==='show' && !['finalizado','cancelado'].includes(p.status)).slice(0,3); showsEl.innerHTML = shows.length ? shows.map(p => `<div class="show-item" onclick="setPanel('tasks');selectProject('${p.id}')"><div class="show-header"><span class="show-title">${escapeHtml(p.name)}</span><span class="show-status status-${p.booking_stage==='confirmado'?'confirmed':'pending'}">${BOOKING_LABELS[p.booking_stage]||'Prospecto'}</span></div><div class="show-meta"><span>${fmtDate(p.deadline)}</span></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon"></div><div class="empty-title">Sin shows cargados</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Show')">+ Nuevo show</button></div>`; }
 
     const activeEl = document.getElementById('homeActiveProjects');
     if (activeEl) activeEl.innerHTML = activeProjects.length ? activeProjects.slice(0,5).map(p => `<div class="goal-item" onclick="setPanel('tasks');selectProject('${p.id}')" style="cursor:pointer"><div class="goal-header"><span class="goal-name">${escapeHtml(p.name)}</span><span class="goal-pct">${p.progress||0}%</span></div><div class="goal-bar"><div class="goal-fill" style="width:${p.progress||0}%;background:${statusColor(p.status)}"></div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin proyectos activos</div>`;
@@ -5133,7 +5158,7 @@
                 <td style="font-size:13px">${escapeHtml(g.concepto)}</td>
                 <td><span class="mov-badge" style="background:${g.tipo==='duro'?'rgba(255,77,109,0.1)':'rgba(232,197,71,0.12)'};color:${g.tipo==='duro'?'var(--red)':'#e8c547'}">${g.tipo==='duro'?'Duro':'Ajustable'}</span></td>
                 <td style="text-align:right;font-family:var(--mono)">$${Number(g.monto_mensual||0).toLocaleString('es-AR')}</td>
-                <td style="font-family:var(--mono);font-size:12px;color:${excedido?'var(--red)':'var(--muted)'}">${real===null?'—':'$'+real.toLocaleString('es-AR')+(excedido?' ⚠ supera lo previsto':'')}</td>
+                <td style="font-family:var(--mono);font-size:12px;color:${excedido?'var(--red)':'var(--muted)'}">${real===null?'—':'$'+real.toLocaleString('es-AR')+(excedido?' — supera lo previsto':'')}</td>
                 <td style="text-align:right;white-space:nowrap">
                   <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px" onclick="gastoToggleActivo('${g.id}')">${g.activo?'Desactivar':'Activar'}</button>
                   <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px;color:var(--red)" onclick="gastoDelete('${g.id}')">Eliminar</button>
