@@ -497,6 +497,35 @@
   .qa-completed-toggle:hover { color: var(--text); }
   .qa-completed-list { padding-top: 2px; }
 
+  /* AYUDA MEMORIA (Inicio) */
+  .memo-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .memo-item:last-child { border-bottom: none; }
+  .memo-text { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--body); font-size: 13px; line-height: 1.45; resize: none; outline: none; padding: 3px 6px; border-radius: 6px; }
+  .memo-text:focus { background: var(--surface2); }
+
+  /* MI SEMANA — planificador manual domingo a sábado */
+  .pl-nota { font-size: 11.5px; color: var(--muted); margin: 0 0 12px; }
+  .pl-wrap { overflow-x: auto; }
+  .pl-table { width: 100%; min-width: 1000px; border-collapse: separate; border-spacing: 8px; table-layout: fixed; }
+  .pl-table th { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); text-align: left; padding: 4px 6px; font-weight: 500; }
+  .pl-table th.pl-today { color: var(--accent); }
+  .pl-table td { vertical-align: top; height: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+  .pl-table td.pl-today { border-color: var(--accent); }
+  .pl-item { display: flex; gap: 8px; align-items: flex-start; padding: 7px 2px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .pl-item:last-of-type { border-bottom: none; }
+  .pl-item.done .pl-text { text-decoration: line-through; color: var(--muted); }
+  .pl-time { font-family: var(--mono); font-size: 10px; color: var(--accent4); margin-bottom: 1px; }
+  .pl-text { font-size: 12.5px; line-height: 1.35; word-break: break-word; }
+  .pl-add { font-size: 12px; color: var(--accent4); cursor: pointer; padding: 8px 2px; }
+  .pl-add:hover { opacity: 0.8; }
+  .pl-form { background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 8px; padding: 8px; margin: 6px 0; }
+  .pl-form .form-input { font-size: 12px; padding: 6px 8px; }
+  .pl-form-times { display: flex; gap: 6px; margin: 6px 0; }
+  .pl-form-times > div { flex: 1; min-width: 0; }
+  .pl-form-times label { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .pl-form-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+  .pl-form-actions .btn { font-size: 11px; padding: 5px 9px; }
+
   /* NUEVO PROYECTO — formulario inline mínimo */
   .np-form { margin-bottom: 16px; }
   .np-form .form-row { grid-template-columns: 1.6fr 1fr 1fr; }
@@ -1809,6 +1838,9 @@
       <div class="nav-item" onclick="setPanel('calendar')">
         Calendario
       </div>
+      <div class="nav-item" onclick="setPanel('week')">
+        Mi semana
+      </div>
     </nav>
 
     <nav class="nav-section">
@@ -1915,7 +1947,8 @@
         <!-- MAIN GRID -->
         <div class="main-grid">
 
-          <!-- LEFT: AGENDA HOY -->
+          <!-- LEFT: AGENDA HOY + AYUDA MEMORIA -->
+          <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
           <div class="card">
             <div class="section-header">
               <div class="section-title">
@@ -1925,6 +1958,18 @@
               <div class="section-link" onclick="setPanel('calendar')">Ver semana</div>
             </div>
             <div id="homeToday"></div>
+          </div>
+
+          <div class="card">
+            <div class="section-header">
+              <div class="section-title"><div class="section-dot" style="background:var(--accent5)"></div>Ayuda memoria</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <input class="form-input" id="memoInput" placeholder="Anotá algo para no olvidarte..." onkeydown="if(event.key==='Enter')memoAgregar()">
+              <button class="btn btn-accent" onclick="memoAgregar()">Agregar</button>
+            </div>
+            <div id="homeMemos"></div>
+          </div>
           </div>
 
           <!-- RIGHT COL -->
@@ -2010,6 +2055,22 @@
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <!-- MI SEMANA — planificador manual, independiente del Calendario -->
+      <div class="panel" id="panel-week">
+        <div class="card">
+          <div class="section-header">
+            <div class="section-title"><div class="section-dot"></div><span id="planWeekLabel">Semana</span></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" onclick="planCambiarSemana(-1)">Semana anterior</button>
+              <button class="btn btn-ghost" onclick="planCambiarSemana(0)">Esta semana</button>
+              <button class="btn btn-ghost" onclick="planCambiarSemana(1)">Semana siguiente</button>
+            </div>
+          </div>
+          <div class="pl-nota">Planificador propio, de domingo a sábado: lo que cargues acá no se sincroniza con el Calendario ni con Google Calendar.</div>
+          <div id="planGrid"></div>
         </div>
       </div>
 
@@ -2521,7 +2582,7 @@
   let DB = {
     projects: [], tasks: [], contacts: [], organizations: [], artists: [],
     personalEvents: [], documents: [], notes: [], inbox: [], faculty: [], goals: [], movimientos: [],
-    areas: [], phases: [], taskDependencies: [], inversiones: [],
+    areas: [], phases: [], taskDependencies: [], inversiones: [], ayudaMemoria: [], planner: [],
     configPrevision: [], gastosFijos: [], fuentesIngreso: [], pagosProgramados: [], ingresosPrevistos: [], asignacionesExcedente: []
   };
 
@@ -2531,7 +2592,8 @@
         projectsRes, tasksRes, contactsRes, orgsRes, artistsRes,
         eventsRes, docsRes, notesRes, inboxRes, facultyRes, goalsRes, movRes,
         areasRes, phasesRes, depsRes, invRes,
-        configPrevRes, gastosFijosRes, fuentesRes, pagosProgRes, ingresosPrevRes, asignExcRes
+        configPrevRes, gastosFijosRes, fuentesRes, pagosProgRes, ingresosPrevRes, asignExcRes,
+        memoRes, plannerRes
       ] = await Promise.all([
         supabaseClient.from('projects').select('*'),
         supabaseClient.from('tasks').select('*'),
@@ -2555,6 +2617,8 @@
         supabaseClient.from('pagos_programados').select('*').order('fecha', { ascending: true }),
         supabaseClient.from('ingresos_previstos').select('*').order('fecha_estimada', { ascending: true }),
         supabaseClient.from('asignaciones_excedente').select('*'),
+        supabaseClient.from('ayuda_memoria').select('*').order('created_at', { ascending: false }),
+        supabaseClient.from('planificador_semanal').select('*'),
       ]);
       DB.projects = projectsRes.data || [];
       DB.tasks = tasksRes.data || [];
@@ -2578,6 +2642,8 @@
       DB.pagosProgramados = pagosProgRes.data || [];
       DB.ingresosPrevistos = ingresosPrevRes.data || [];
       DB.asignacionesExcedente = asignExcRes.data || [];
+      DB.ayudaMemoria = memoRes.data || [];
+      DB.planner = plannerRes.data || [];
       console.log('Datos cargados desde Supabase:', DB);
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -2825,9 +2891,9 @@
   /* =========================================================
      NAVEGACIÓN DE PANELES
      ========================================================= */
-  const panels = ['home','inbox','calendar','tasks','todos','shows','faculty','contacts','orgs','artists','finance','habits','goals','docs','notes','settings'];
+  const panels = ['home','inbox','calendar','week','tasks','todos','shows','faculty','contacts','orgs','artists','finance','habits','goals','docs','notes','settings'];
   const panelTitles = {
-    home: 'Inicio', inbox: 'Bandeja de entrada', calendar: 'Calendario', tasks: 'Proyectos', todos: 'Tareas',
+    home: 'Inicio', inbox: 'Bandeja de entrada', calendar: 'Calendario', week: 'Mi semana', tasks: 'Proyectos', todos: 'Tareas',
     shows: 'Shows y eventos', faculty: 'Facultad', contacts: 'Contactos', orgs: 'Organizaciones', artists: 'Artistas',
     finance: 'Finanzas', habits: 'Hábitos', goals: 'Objetivos', docs: 'Documentos', notes: 'Notas', settings: 'Configuración'
   };
@@ -2842,6 +2908,7 @@
     document.querySelectorAll('.nav-item').forEach(n => {
       if (n.onclick?.toString().includes(`'${id}'`)) n.classList.add('active');
     });
+    if (id === 'week')    renderPlanner();
     if (id === 'finance') renderMovimientos();
     if (id === 'habits')  renderHabitTracker();
     if (id === 'inbox')   renderInbox();
@@ -4330,6 +4397,8 @@
     const urgentEl = document.getElementById('homeUrgentTasks');
     if (urgentEl) { const urgent = sortTasksPriority(pendingTasks).slice(0,5); urgentEl.innerHTML = urgent.length ? urgent.map(t => `<div class="task-item"><div class="task-check" onclick="toggleDbTask('${t.id}')"></div><div class="task-text">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.scheduled_date || t.due_date)}</div></div></div>`).join('') : `<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:22px"></div><div class="empty-title">Sin tareas urgentes</div><button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="openModal('Tarea')">+ Nueva tarea</button></div>`; }
 
+    renderAyudaMemoria();
+
     const portfolioEl = document.getElementById('homePortfolio');
     if (portfolioEl) {
       if (!DB.inversiones.length) {
@@ -5495,6 +5564,186 @@
         </div>
       </div>
       ${!DB.fuentesIngreso.length ? '<div class="card" style="margin-top:16px"><div class="empty-desc">Cargá al menos una fuente de ingreso (pestaña "Ingresos previstos") para ver los escenarios.</div></div>' : ''}`;
+  }
+
+  /* =========================================================
+     AYUDA MEMORIA (Inicio) — notas rápidas
+     ========================================================= */
+  function renderAyudaMemoria() {
+    const el = document.getElementById('homeMemos');
+    if (!el) return;
+    if (!DB.ayudaMemoria.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:14px 0"><div class="empty-desc">Sin notas. Anotá lo que no quieras olvidarte.</div></div>`;
+      return;
+    }
+    el.innerHTML = DB.ayudaMemoria.map(n => {
+      const rows = Math.max(1, ((n.texto.match(/\n/g) || []).length + 1) + Math.floor(n.texto.length / 55));
+      return `<div class="memo-item">
+        <textarea class="memo-text" rows="${rows}" onchange="memoEditar('${n.id}', this.value)">${escapeHtml(n.texto)}</textarea>
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;color:var(--red)" onclick="memoEliminar('${n.id}')">Eliminar</button>
+      </div>`;
+    }).join('');
+  }
+
+  async function memoAgregar() {
+    const input = document.getElementById('memoInput');
+    const texto = input.value.trim();
+    if (!texto) { input.focus(); return; }
+    try {
+      const { data, error } = await supabaseClient.from('ayuda_memoria').insert([{ texto }]).select();
+      if (error) throw error;
+      DB.ayudaMemoria.unshift(data[0]);
+      input.value = '';
+      renderAyudaMemoria();
+      input.focus();
+    } catch (err) { alert('Error guardando la nota: ' + err.message); }
+  }
+
+  async function memoEditar(id, valor) {
+    const n = DB.ayudaMemoria.find(x => x.id === id);
+    if (!n) return;
+    const texto = valor.trim();
+    if (!texto) { renderAyudaMemoria(); return; }
+    try {
+      const { error } = await supabaseClient.from('ayuda_memoria').update({ texto }).eq('id', id);
+      if (error) throw error;
+      n.texto = texto;
+      renderAyudaMemoria();
+    } catch (err) { alert('Error guardando la nota: ' + err.message); }
+  }
+
+  async function memoEliminar(id) {
+    try {
+      const { error } = await supabaseClient.from('ayuda_memoria').delete().eq('id', id);
+      if (error) throw error;
+      DB.ayudaMemoria = DB.ayudaMemoria.filter(n => n.id !== id);
+      renderAyudaMemoria();
+    } catch (err) { alert('Error eliminando la nota: ' + err.message); }
+  }
+
+  /* =========================================================
+     MI SEMANA — planificador manual de domingo a sábado.
+     Es independiente del Calendario: nada de esto se sincroniza.
+     ========================================================= */
+  const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  let planWeekOffset = 0;
+  let planAdding = null;     // fecha (ISO) del día con el formulario de alta abierto
+  let planEditingId = null;  // id de la actividad que se está editando
+
+  function planDomingo(offset) {
+    const hoy = todayISO();
+    const dow = new Date(hoy + 'T00:00:00').getDay();
+    return addDays(hoy, -dow + 7 * offset);
+  }
+
+  function planEtiquetaSemana(dom) {
+    const sab = addDays(dom, 6);
+    const [, m1, d1] = dom.split('-'), [y2, m2, d2] = sab.split('-');
+    return `Semana del ${parseInt(d1)} de ${MES_NOMBRE[m1].toLowerCase()} al ${parseInt(d2)} de ${MES_NOMBRE[m2].toLowerCase()} de ${y2}`;
+  }
+
+  function planCambiarSemana(dir) {
+    planWeekOffset = dir === 0 ? 0 : planWeekOffset + dir;
+    planAdding = null; planEditingId = null;
+    renderPlanner();
+  }
+
+  function planOrden(a, b) {
+    return (a.hora_inicio || '99:99').localeCompare(b.hora_inicio || '99:99') || (a.created_at || '').localeCompare(b.created_at || '');
+  }
+
+  function planFormHtml(fecha, item) {
+    const idArg = item ? `'${item.id}'` : 'null';
+    return `<div class="pl-form">
+      <input class="form-input" id="pl_texto" list="pl_sugerencias" placeholder="Actividad o tarea" value="${item ? escapeHtml(item.texto) : ''}" onkeydown="if(event.key==='Enter')planGuardar('${fecha}', ${idArg});if(event.key==='Escape')planCancelar();">
+      <datalist id="pl_sugerencias">${DB.tasks.filter(t => !t.done).map(t => `<option value="${escapeHtml(t.title)}"></option>`).join('')}</datalist>
+      <div class="pl-form-times">
+        <div><label>Desde</label><input class="form-input" type="time" id="pl_ini" value="${item && item.hora_inicio ? item.hora_inicio.slice(0,5) : ''}"></div>
+        <div><label>Hasta</label><input class="form-input" type="time" id="pl_fin" value="${item && item.hora_fin ? item.hora_fin.slice(0,5) : ''}"></div>
+      </div>
+      <div class="pl-form-actions">
+        ${item ? `<button class="btn btn-ghost" style="color:var(--red)" onclick="planEliminar('${item.id}')">Quitar</button>` : ''}
+        <button class="btn btn-ghost" onclick="planCancelar()">Cancelar</button>
+        <button class="btn btn-accent" onclick="planGuardar('${fecha}', ${idArg})">Guardar</button>
+      </div>
+    </div>`;
+  }
+
+  function planCeldaHtml(fecha) {
+    const items = DB.planner.filter(i => i.fecha === fecha).sort(planOrden);
+    const lista = items.map(i => i.id === planEditingId ? planFormHtml(fecha, i) : `
+      <div class="pl-item ${i.hecho ? 'done' : ''}" onclick="planAbrirEdicion('${i.id}')">
+        <div class="task-check ${i.hecho ? 'done' : ''}" onclick="event.stopPropagation();planToggleHecho('${i.id}')"></div>
+        <div>
+          ${i.hora_inicio ? `<div class="pl-time">${i.hora_inicio.slice(0,5)}${i.hora_fin ? ' a ' + i.hora_fin.slice(0,5) : ''}</div>` : ''}
+          <div class="pl-text">${escapeHtml(i.texto)}</div>
+        </div>
+      </div>`).join('');
+    const alta = planAdding === fecha ? planFormHtml(fecha, null) : `<div class="pl-add" onclick="planAbrirAlta('${fecha}')">+ Agregar</div>`;
+    return lista + alta;
+  }
+
+  function renderPlanner() {
+    const wrap = document.getElementById('planGrid');
+    if (!wrap) return;
+    const dom = planDomingo(planWeekOffset);
+    const hoy = todayISO();
+    const dias = [0,1,2,3,4,5,6].map(i => addDays(dom, i));
+    const label = document.getElementById('planWeekLabel');
+    if (label) label.textContent = planEtiquetaSemana(dom);
+    wrap.innerHTML = `<div class="pl-wrap"><table class="pl-table">
+      <thead><tr>${dias.map((f, i) => `<th class="${f === hoy ? 'pl-today' : ''}">${DIAS_SEMANA[i]} ${parseInt(f.slice(8, 10))}</th>`).join('')}</tr></thead>
+      <tbody><tr>${dias.map(f => `<td class="${f === hoy ? 'pl-today' : ''}">${planCeldaHtml(f)}</td>`).join('')}</tr></tbody>
+    </table></div>`;
+    if (planAdding || planEditingId) { const t = document.getElementById('pl_texto'); if (t) t.focus(); }
+  }
+
+  function planAbrirAlta(fecha) { planAdding = fecha; planEditingId = null; renderPlanner(); }
+  function planAbrirEdicion(id) { planEditingId = id; planAdding = null; renderPlanner(); }
+  function planCancelar() { planAdding = null; planEditingId = null; renderPlanner(); }
+
+  async function planGuardar(fecha, id) {
+    const texto = val('pl_texto');
+    if (!texto) { document.getElementById('pl_texto').focus(); return; }
+    const ini = val('pl_ini') || null;
+    let fin = val('pl_fin') || null;
+    if (fin && !ini) { alert('Cargá primero la hora de inicio ("Desde").'); return; }
+    if (fin && ini && fin <= ini) { alert('La hora de fin tiene que ser posterior a la de inicio.'); return; }
+    try {
+      if (id) {
+        const { error } = await supabaseClient.from('planificador_semanal').update({ texto, hora_inicio: ini, hora_fin: fin }).eq('id', id);
+        if (error) throw error;
+        const it = DB.planner.find(x => x.id === id);
+        if (it) { it.texto = texto; it.hora_inicio = ini; it.hora_fin = fin; }
+      } else {
+        const { data, error } = await supabaseClient.from('planificador_semanal').insert([{ fecha, texto, hora_inicio: ini, hora_fin: fin, hecho: false }]).select();
+        if (error) throw error;
+        DB.planner.push(data[0]);
+      }
+      planAdding = null; planEditingId = null;
+      renderPlanner();
+    } catch (err) { alert('Error guardando la actividad: ' + err.message); }
+  }
+
+  async function planToggleHecho(id) {
+    const it = DB.planner.find(x => x.id === id);
+    if (!it) return;
+    try {
+      const { error } = await supabaseClient.from('planificador_semanal').update({ hecho: !it.hecho }).eq('id', id);
+      if (error) throw error;
+      it.hecho = !it.hecho;
+      renderPlanner();
+    } catch (err) { alert('Error actualizando la actividad: ' + err.message); }
+  }
+
+  async function planEliminar(id) {
+    try {
+      const { error } = await supabaseClient.from('planificador_semanal').delete().eq('id', id);
+      if (error) throw error;
+      DB.planner = DB.planner.filter(x => x.id !== id);
+      planEditingId = null;
+      renderPlanner();
+    } catch (err) { alert('Error eliminando la actividad: ' + err.message); }
   }
 
   function getCatColor(cat) {
