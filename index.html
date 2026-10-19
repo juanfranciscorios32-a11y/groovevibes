@@ -3054,16 +3054,33 @@
         <div class="form-group"><label class="form-label">Progreso actual (%)</label><input class="form-input" type="number" min="0" max="100" id="f_pct" value="0"></div>`;
     } else if (type === 'Ingreso' || type === 'Gasto' || type === 'Inversión/Ahorro') {
       const finKind = type === 'Ingreso' ? 'ingreso' : (type === 'Gasto' ? 'gasto' : 'inversion');
+      const isInv = type === 'Inversión/Ahorro';
       html = `
         <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="f_title" placeholder="Ej: Show Club XYZ"></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Categoría</label><select class="form-input" id="f_cat">${finCatSelectOptions(finKind, '')}</select></div>
-          <div class="form-group"><label class="form-label">Monto (USD)</label><input class="form-input" type="number" id="f_amount" placeholder="0"></div>
+          ${!isInv ? `<div class="form-group"><label class="form-label">Monto (ARS)</label><input class="form-input" type="number" id="f_amount" placeholder="0"></div>` : ''}
         </div>
+        ${isInv ? `
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Moneda</label><select class="form-input" id="f_moneda" onchange="toggleInvMonedaFields()"><option value="ARS">ARS (pesos)</option><option value="USD">USD (dólares)</option></select></div>
+          <div class="form-group"><label class="form-label" id="f_amountLabel">Monto (ARS)</label><input class="form-input" type="number" id="f_amount" placeholder="0"></div>
+        </div>
+        <div class="form-group" id="f_cotizRow" style="display:none"><label class="form-label">Cotización de compra ($ por USD)</label><input class="form-input" type="number" id="f_cotiz" placeholder="Ej: 1540"></div>` : ''}
         <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="f_date" value="${todayISO()}"></div>
         <div class="form-group"><label class="form-label">Proyecto vinculado (opcional)</label><select class="form-input" id="f_project"><option value="">— Ninguno —</option>${projOptions}</select></div>`;
     }
     wrap.innerHTML = html;
+  }
+
+  function toggleInvMonedaFields() {
+    const monedaSel = document.getElementById('f_moneda');
+    if (!monedaSel) return;
+    const mon = monedaSel.value;
+    const label = document.getElementById('f_amountLabel');
+    const cotizRow = document.getElementById('f_cotizRow');
+    if (label) label.textContent = mon === 'USD' ? 'Monto (USD)' : 'Monto (ARS)';
+    if (cotizRow) cotizRow.style.display = mon === 'USD' ? '' : 'none';
   }
 
   const FIN_CAT_KEY = 'fin_categories_v1';
@@ -3453,15 +3470,23 @@
 
       } else if (type === 'Ingreso' || type === 'Gasto' || type === 'Inversión/Ahorro') {
         const isIng = type === 'Ingreso';
+        const isInv = type === 'Inversión/Ahorro';
         const movTipo = isIng ? 'ingreso' : (type === 'Gasto' ? 'egreso' : 'inversion');
-        const amount = Math.abs(parseFloat(val('f_amount')) || 0);
+        const rawAmount = Math.abs(parseFloat(val('f_amount')) || 0);
+        const monedaSel = isInv ? (val('f_moneda') || 'ARS') : 'ARS';
+        const esUsd = isInv && monedaSel === 'USD';
+        const cotizacion = esUsd ? Math.abs(parseFloat(val('f_cotiz')) || 0) : null;
+        if (esUsd && !cotizacion) { alert('Ingresá la cotización de compra para convertir el monto en USD a pesos.'); return; }
+        const amount = esUsd ? rawAmount * cotizacion : rawAmount;
         const lastSaldo = DB.movimientos.length ? Number(DB.movimientos[0].saldo) || 0 : 0;
         const signed = isIng ? amount : -amount;
         const dateVal = val('f_date') || todayISO();
+        const descExtra = esUsd ? ` (USD ${rawAmount.toLocaleString('es-AR')} x $${cotizacion.toLocaleString('es-AR')})` : '';
         const { data, error } = await supabaseClient.from('movimientos').insert([{
           fecha: dateVal,
-          description: title, cat: val('f_cat') || 'Otros', tipo: movTipo,
-          monto: signed, saldo: lastSaldo + signed, project_id: val('f_project') || null
+          description: title + descExtra, cat: val('f_cat') || 'Otros', tipo: movTipo,
+          monto: signed, saldo: lastSaldo + signed, project_id: val('f_project') || null,
+          moneda_original: monedaSel, monto_original: esUsd ? rawAmount : null, cotizacion: cotizacion
         }]).select();
         if (error) throw error;
         DB.movimientos.unshift(data[0]);
