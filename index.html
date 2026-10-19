@@ -2367,7 +2367,7 @@
                 <option value="">Todas las categorías</option>
               </select>
               <select class="form-input" style="width:auto;font-size:12px;padding:7px 10px" id="movTipoFilter" onchange="renderMovimientos()">
-                <option value="">Ingresos y egresos</option><option value="ingreso">Solo ingresos</option><option value="egreso">Solo egresos</option>
+                <option value="">Ingresos y egresos</option><option value="ingreso">Solo ingresos</option><option value="egreso">Solo egresos</option><option value="inversion">Solo inversión/ahorro</option>
               </select>
             </div>
             <div style="display:flex;gap:8px">
@@ -2392,6 +2392,10 @@
             <div class="mov-total-item">
               <span style="color:var(--muted)">Total egresos</span>
               <span id="movTotEgr" style="color:var(--red);font-family:var(--mono);font-weight:700">-$0</span>
+            </div>
+            <div class="mov-total-item">
+              <span style="color:var(--muted)">Total inversión/ahorro</span>
+              <span id="movTotInv" style="color:var(--accent4);font-family:var(--mono);font-weight:700">-$0</span>
             </div>
             <div class="mov-total-item" style="border-left:2px solid var(--accent);padding-left:16px">
               <span style="font-weight:600">Saldo al cierre</span>
@@ -2930,8 +2934,8 @@
     document.getElementById('modalOverlay').classList.add('open');
     const newTypeSel = document.getElementById('newType');
     const principales = ['Tarea', 'Proyecto', 'Show'];
-    if (type === 'Ingreso' || type === 'Gasto') {
-      newTypeSel.innerHTML = '<option>Ingreso</option><option>Gasto</option>';
+    if (type === 'Ingreso' || type === 'Gasto' || type === 'Inversión/Ahorro') {
+      newTypeSel.innerHTML = '<option>Ingreso</option><option>Gasto</option><option>Inversión/Ahorro</option>';
       newTypeSel.value = type;
     } else if (!type || type === 'Show / Evento' || principales.includes(type)) {
       newTypeSel.innerHTML = principales.map(t => `<option>${t}</option>`).join('');
@@ -3048,8 +3052,8 @@
       html = `
         <div class="form-group"><label class="form-label">Objetivo</label><input class="form-input" id="f_title" placeholder="Ej: Facturar $60K en el año"></div>
         <div class="form-group"><label class="form-label">Progreso actual (%)</label><input class="form-input" type="number" min="0" max="100" id="f_pct" value="0"></div>`;
-    } else if (type === 'Ingreso' || type === 'Gasto') {
-      const finKind = type === 'Ingreso' ? 'ingreso' : 'gasto';
+    } else if (type === 'Ingreso' || type === 'Gasto' || type === 'Inversión/Ahorro') {
+      const finKind = type === 'Ingreso' ? 'ingreso' : (type === 'Gasto' ? 'gasto' : 'inversion');
       html = `
         <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="f_title" placeholder="Ej: Show Club XYZ"></div>
         <div class="form-row">
@@ -3070,6 +3074,10 @@
       { name:'Evento', subs:[] }, { name:'Agencia', subs:[] }, { name:'Ventas', subs:[] },
       { name:'Comisiones', subs:[] }, { name:'Otros ingresos', subs:[] }
     ],
+    inversion: [
+      { name:'Ahorro', subs:[] }, { name:'Plazo fijo', subs:[] }, { name:'Dólares', subs:[] },
+      { name:'Cripto', subs:[] }, { name:'Acciones/Fondos', subs:[] }, { name:'Otras inversiones', subs:[] }
+    ],
     gasto: [
       { name:'Alquiler', subs:[] },
       { name:'Servicios', subs:['Luz','Gas','Wifi','Celular'] },
@@ -3086,7 +3094,7 @@
   function normalizeFinCats(raw) {
     const norm = kind => (raw && raw[kind] ? raw[kind] : []).map(c =>
       typeof c === 'string' ? { name: c, subs: [] } : { name: c.name, subs: c.subs || [] });
-    return { ingreso: norm('ingreso'), gasto: norm('gasto') };
+    return { ingreso: norm('ingreso'), gasto: norm('gasto'), inversion: norm('inversion') };
   }
 
   function loadFinCats() {
@@ -3100,6 +3108,9 @@
         }
         if (JSON.stringify(parsed.gasto.map(c=>c.name)) === JSON.stringify(OLD_DEFAULT_GASTO_NAMES)) {
           parsed.gasto = JSON.parse(JSON.stringify(DEFAULT_FIN_CATS.gasto));
+        }
+        if (!parsed.inversion || !parsed.inversion.length) {
+          parsed.inversion = JSON.parse(JSON.stringify(DEFAULT_FIN_CATS.inversion));
         }
         saveFinCats(parsed);
         return parsed;
@@ -3240,6 +3251,7 @@
       <div class="card" style="display:flex;gap:24px;flex-wrap:wrap">
         ${finCatColumnHtml('ingreso', 'Categorías de Ingreso')}
         ${finCatColumnHtml('gasto', 'Categorías de Gasto')}
+        ${finCatColumnHtml('inversion', 'Categorías de Inversión/Ahorro')}
       </div>`;
   }
 
@@ -3247,7 +3259,7 @@
     const sel = document.getElementById('movCatFilter');
     if (!sel) return;
     const current = sel.value;
-    const all = [...finCatLeaves('ingreso'), ...finCatLeaves('gasto')];
+    const all = [...finCatLeaves('ingreso'), ...finCatLeaves('gasto'), ...finCatLeaves('inversion')];
     sel.innerHTML = '<option value="">Todas las categorías</option>' + all.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     sel.value = all.includes(current) ? current : '';
   }
@@ -3290,7 +3302,7 @@
     const header = ['Fecha','Descripcion','Categoria','Tipo','Monto','Saldo'];
     const rows = datos.map(m => [
       m.fecha || '', m.description || '', m.cat || '',
-      m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso', m.monto, m.saldo
+      m.tipo === 'ingreso' ? 'Ingreso' : (m.tipo === 'inversion' ? 'Inversión/Ahorro' : 'Egreso'), m.monto, m.saldo
     ]);
     const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -3439,15 +3451,16 @@
         DB.goals.push(data[0]);
         renderGoals();
 
-      } else if (type === 'Ingreso' || type === 'Gasto') {
+      } else if (type === 'Ingreso' || type === 'Gasto' || type === 'Inversión/Ahorro') {
         const isIng = type === 'Ingreso';
+        const movTipo = isIng ? 'ingreso' : (type === 'Gasto' ? 'egreso' : 'inversion');
         const amount = Math.abs(parseFloat(val('f_amount')) || 0);
         const lastSaldo = DB.movimientos.length ? Number(DB.movimientos[0].saldo) || 0 : 0;
         const signed = isIng ? amount : -amount;
         const dateVal = val('f_date') || todayISO();
         const { data, error } = await supabaseClient.from('movimientos').insert([{
           fecha: dateVal,
-          description: title, cat: val('f_cat') || 'Otros', tipo: isIng ? 'ingreso' : 'egreso',
+          description: title, cat: val('f_cat') || 'Otros', tipo: movTipo,
           monto: signed, saldo: lastSaldo + signed, project_id: val('f_project') || null
         }]).select();
         if (error) throw error;
@@ -4600,6 +4613,12 @@
 
   let editingMovId = null;
 
+  function movTipoInfo(tipo) {
+    if (tipo === 'ingreso') return { label: 'Ingreso', color: 'var(--green)', bg: 'rgba(57,217,138,0.1)', catKind: 'ingreso' };
+    if (tipo === 'inversion') return { label: 'Inversión/Ahorro', color: 'var(--accent4)', bg: 'rgba(92,204,250,0.1)', catKind: 'inversion' };
+    return { label: 'Egreso', color: 'var(--red)', bg: 'rgba(255,77,109,0.1)', catKind: 'gasto' };
+  }
+
   function renderMovimientos() {
     populateMovCatFilter();
     populateMovMesFilter();
@@ -4623,6 +4642,7 @@
     } else {
       filtrados.forEach(m => {
         const isIng = m.tipo === 'ingreso';
+        const tInfo = movTipoInfo(m.tipo);
         const monto = Number(m.monto) || 0;
         const saldo = Number(m.saldo) || 0;
         const row = document.createElement('tr');
@@ -4630,8 +4650,8 @@
           row.innerHTML = `
             <td><input class="form-input" type="date" id="movEditFecha_${m.id}" value="${m.fecha && m.fecha.includes('-') ? m.fecha : todayISO()}" style="font-size:12px;padding:6px 8px"></td>
             <td><input class="form-input" id="movEditDesc_${m.id}" value="${escapeHtml(m.description)}" style="font-size:12px;padding:6px 8px"></td>
-            <td><select class="form-input" id="movEditCat_${m.id}" style="font-size:12px;padding:6px 8px">${finCatSelectOptions(isIng ? 'ingreso' : 'gasto', m.cat)}</select></td>
-            <td><span class="mov-badge" style="background:${isIng?'rgba(57,217,138,0.1)':'rgba(255,77,109,0.1)'};color:${isIng?'var(--green)':'var(--red)'}">${isIng?'Ingreso':'Egreso'}</span></td>
+            <td><select class="form-input" id="movEditCat_${m.id}" style="font-size:12px;padding:6px 8px">${finCatSelectOptions(tInfo.catKind, m.cat)}</select></td>
+            <td><span class="mov-badge" style="background:${tInfo.bg};color:${tInfo.color}">${tInfo.label}</span></td>
             <td style="text-align:right"><input class="form-input" type="number" id="movEditMonto_${m.id}" value="${Math.abs(monto)}" style="font-size:12px;padding:6px 8px;text-align:right"></td>
             <td style="text-align:right;font-family:var(--mono);font-size:11px;color:${saldo>=0?'var(--text)':'var(--red)'}">${saldo>=0?'+':''}$${saldo.toLocaleString('es-AR')}</td>
             <td style="text-align:right;white-space:nowrap">
@@ -4644,8 +4664,8 @@
             <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(m.fecha)}</td>
             <td style="font-size:13px">${escapeHtml(m.description)}</td>
             <td><span class="mov-badge" style="background:${getCatColor(m.cat)}22;color:${getCatColor(m.cat)}">${escapeHtml(m.cat)}</span></td>
-            <td><span class="mov-badge" style="background:${isIng?'rgba(57,217,138,0.1)':'rgba(255,77,109,0.1)'};color:${isIng?'var(--green)':'var(--red)'}">${isIng?'Ingreso':'Egreso'}</span></td>
-            <td style="text-align:right;font-family:var(--mono);font-weight:700;color:${isIng?'var(--green)':'var(--red)'}">${isIng?'+':''}$${Math.abs(monto).toLocaleString('es-AR')}</td>
+            <td><span class="mov-badge" style="background:${tInfo.bg};color:${tInfo.color}">${tInfo.label}</span></td>
+            <td style="text-align:right;font-family:var(--mono);font-weight:700;color:${tInfo.color}">${isIng?'+':''}$${Math.abs(monto).toLocaleString('es-AR')}</td>
             <td style="text-align:right;font-family:var(--mono);font-size:11px;color:${saldo>=0?'var(--text)':'var(--red)'}">${saldo>=0?'+':''}$${saldo.toLocaleString('es-AR')}</td>
             <td style="text-align:right;white-space:nowrap">
               <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px" onclick="movEditRow('${m.id}')">Editar</button>
@@ -4658,11 +4678,13 @@
     }
     const totIng = filtrados.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+(Number(m.monto)||0),0);
     const totEgr = filtrados.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+(Number(m.monto)||0),0);
+    const totInv = filtrados.filter(m=>m.tipo==='inversion').reduce((s,m)=>s+(Number(m.monto)||0),0);
     const saldoInicial = mesFiltro ? DB.movimientos.filter(m => m.fecha && m.fecha.includes('-') && m.fecha.slice(0,7) < mesFiltro).reduce((s,m) => s + (Number(m.monto)||0), 0) : 0;
     renderSaldoMensualItem(mesFiltro, saldoInicial);
     const ti = document.getElementById('movTotIng'); if (ti) ti.textContent = '+$' + totIng.toLocaleString('es-AR');
     const te = document.getElementById('movTotEgr'); if (te) te.textContent = '-$' + Math.abs(totEgr).toLocaleString('es-AR');
-    const tn = document.getElementById('movTotNeto'); if (tn) { const neto = saldoInicial + totIng + totEgr; tn.textContent = (neto>=0?'+':'') + '$' + neto.toLocaleString('es-AR'); }
+    const tv = document.getElementById('movTotInv'); if (tv) tv.textContent = '-$' + Math.abs(totInv).toLocaleString('es-AR');
+    const tn = document.getElementById('movTotNeto'); if (tn) { const neto = saldoInicial + totIng + totEgr + totInv; tn.textContent = (neto>=0?'+':'') + '$' + neto.toLocaleString('es-AR'); }
   }
 
   let editingSaldoMensual = false;
