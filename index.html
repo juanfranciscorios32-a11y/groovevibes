@@ -2657,6 +2657,7 @@
 
   async function refreshAllData() {
     await loadAllData();
+    await rutinaAutomatica();
     renderAll();
   }
 
@@ -2670,6 +2671,96 @@
   const PROJECT_TYPES_CREATE = { show:'Show', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' };
   const PROJECT_STATUS = { idea:'Pendiente', planificacion:'Pendiente', en_desarrollo:'En proceso', esperando_respuesta:'Pendiente', en_ejecucion:'En proceso', finalizado:'Finalizado', cancelado:'Cancelado' };
   function isProjArchived(p) { return ['finalizado','cancelado'].includes(p.status); }
+  function isProjEnProceso(p) { return ['en_ejecucion','en_desarrollo'].includes(p.status); }
+  // Orden: primero los que estan En proceso, luego por cercania de la fecha (sin fecha al final)
+  function sortProjects(list) {
+    return [...list].sort((a, b) => {
+      const pa = isProjEnProceso(a) ? 0 : 1, pb = isProjEnProceso(b) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      const da = a.deadline || '9999-12-31', db = b.deadline || '9999-12-31';
+      if (da !== db) return da.localeCompare(db);
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }
+  // ---- Proyecto recurrente mensual "AGENCIA" con etapas semanales ----
+  const AGENCIA_PLANTILLA_SEMANAL = [
+    'Confirmar logística de las fechas de esta semana',
+    'Subir el calendario semanal de la agencia a redes',
+    'Cerrar eventos del fin de semana',
+    'Cerrar booking fee del fin de semana',
+    'Agendar una llamada con algún DJ'
+  ];
+  const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  function isoDe(y, m, d) { return y + '-' + String(m + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
+  // Crea (si falta) el proyecto AGENCIA del mes en curso: del dia 1 al ultimo dia, con una etapa por semana
+  async function ensureAgenciaMensual() {
+    const [y, m1, d] = todayISO().split('-').map(Number);
+    const m = m1 - 1;
+    const first = isoDe(y, m, 1);
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    const semana = Math.ceil(d / 7);
+    let changed = false;
+    try {
+      let proj = DB.projects.find(p => p.type === 'agencia' && p.start_date === first && /^AGENCIA\s—/i.test(p.name || ''));
+      if (!proj) {
+        const area = (DB.areas || []).find(a => (a.name || '').toLowerCase() === 'agencia');
+        const { data, error } = await supabaseClient.from('projects').insert([{
+          name: 'AGENCIA — ' + MESES_ES[m] + ' ' + y, type: 'agencia', status: 'en_ejecucion', priority: 'alta',
+          start_date: first, deadline: isoDe(y, m, lastDay), area_id: area ? area.id : null,
+          description: 'Proyecto mensual recurrente. Una etapa por semana.', progress: 0
+        }]).select();
+        if (error) throw error;
+        proj = data[0]; DB.projects.push(proj); changed = true;
+      }
+      if (isProjArchived(proj)) return changed;
+      const yaTiene = phasesOf(proj.id).some(ph => ph.name.startsWith('Semana ' + semana + ' '));
+      if (!yaTiene) {
+        const desde = (semana - 1) * 7 + 1, hasta = Math.min(semana * 7, lastDay);
+        const { data: ph, error: e1 } = await supabaseClient.from('phases').insert([{
+          project_id: proj.id, name: 'Semana ' + semana + ' (' + desde + ' al ' + hasta + ')', sequence_index: semana - 1, status: 'activa'
+        }]).select();
+        if (e1) throw e1;
+        DB.phases.push(...ph);
+        const { data: ts, error: e2 } = await supabaseClient.from('tasks').insert(AGENCIA_PLANTILLA_SEMANAL.map(title => ({
+          title, project_id: proj.id, phase_id: ph[0].id, area_id: proj.area_id, status: 'to_do', priority: 'media', done: false
+        }))).select();
+        if (e2) throw e2;
+        DB.tasks.push(...ts); changed = true;
+      }
+    } catch (e) {
+      console.error('Error creando AGENCIA mensual:', e);
+    }
+    return changed;
+  }
+  async function rutinaAutomatica() {
+    const a = await ensureAgenciaMensual();
+    const b = await autoFinalizarVencidos();
+    return a || b;
+  }
+  // Pasa a Finalizado todo lo que tenga fecha de finalizacion anterior a hoy
+  async function autoFinalizarVencidos() {
+    const hoy = todayISO();
+    const tareas = DB.tasks.filter(t => !t.done && !t.is_recurring && t.due_date && t.due_date < hoy);
+    const proyectos = DB.projects.filter(p => !isProjArchived(p) && p.deadline && p.deadline < hoy);
+    if (!tareas.length && !proyectos.length) return false;
+    try {
+      if (tareas.length) {
+        const { error } = await supabaseClient.from('tasks').update({ done: true, status: 'done' }).in('id', tareas.map(t => t.id));
+        if (error) throw error;
+        tareas.forEach(t => { t.done = true; t.status = 'done'; });
+      }
+      if (proyectos.length) {
+        const { error } = await supabaseClient.from('projects').update({ status: 'finalizado' }).in('id', proyectos.map(p => p.id));
+        if (error) throw error;
+        proyectos.forEach(p => { p.status = 'finalizado'; });
+      }
+      console.log('Auto-finalizados:', tareas.length, 'tareas,', proyectos.length, 'proyectos');
+      return true;
+    } catch (e) {
+      console.error('Error auto-finalizando vencidos:', e);
+      return false;
+    }
+  }
   const BOOKING_STAGES = ['lead','contactado','respondio','negociacion','confirmado','contrato','show','pago','finalizado'];
   const BOOKING_LABELS = { lead:'Prospecto', contactado:'Contactado', respondio:'Respondió', negociacion:'Negociación', confirmado:'Confirmado', contrato:'Contrato', show:'Show', pago:'Pago', finalizado:'Finalizado' };
 
@@ -2781,7 +2872,11 @@
   async function initializeApp() {
     console.log('Inicializando SISTEMA OS con Supabase...');
     await loadAllData();
+    await rutinaAutomatica();
     renderAll();
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && await rutinaAutomatica()) renderAll();
+    });
   }
 
   /* =========================================================
@@ -3634,7 +3729,7 @@
     if (tabsEl) tabsEl.innerHTML = cats.map(([k,l]) => `<button class="ctx-tab ${projFilter===k?'active':''}" onclick="setProjFilter('${k}')">${l}</button>`).join('');
 
     const base = DB.projects.filter(p => showArchivedProjects ? isProjArchived(p) : !isProjArchived(p));
-    const list = projFilter === 'todos' ? base : base.filter(p => p.type === projFilter);
+    const list = sortProjects(projFilter === 'todos' ? base : base.filter(p => p.type === projFilter));
     const btnArch = document.getElementById('btnArchProjects');
     if (btnArch) btnArch.textContent = showArchivedProjects ? 'Ver activos' : 'Ver archivados';
     const badge = document.getElementById('projectsBadge');
@@ -3644,9 +3739,11 @@
       gridEl.innerHTML = `<div class="empty-state" style="padding:60px 20px;grid-column:1/-1"><div class="empty-icon" style="font-size:40px"></div><div class="empty-title">${showArchivedProjects ? 'Sin proyectos archivados' : 'Sin proyectos en esta categoría'}</div>${showArchivedProjects ? '' : '<button class="btn btn-accent" style="margin-top:18px" onclick="npOpen()">+ Crear proyecto</button>'}</div>`;
     } else {
       gridEl.innerHTML = list.map(p => {
-        const pending = tasksOf(p.id).filter(t => !t.done);
+        const pending = tasksOf(p.id).filter(t => !t.done).sort((a,b) => (a.due_date||a.scheduled_date||'9999').localeCompare(b.due_date||b.scheduled_date||'9999'));
+        const enProc = isProjEnProceso(p) && !showArchivedProjects;
+        const shown = enProc ? pending.slice(0, 8) : pending.slice(0, 3);
         return `
-        <div class="project-card ${p.type}" onclick="selectProject('${p.id}')">
+        <div class="project-card ${p.type}" ${enProc ? 'style="border-color:var(--accent);grid-column:1/-1"' : ''} onclick="selectProject('${p.id}')">
           <div class="proj-top">
             
             <span class="proj-status-dot" style="background:${statusColor(p.status)}" title="${PROJECT_STATUS[p.status]||p.status}"></span>
@@ -3655,7 +3752,7 @@
           <div class="proj-sub">${PROJECT_TYPES[p.type]||p.type} · ${PROJECT_STATUS[p.status]||p.status} · vence ${fmtDate(p.deadline)}</div>
           <div class="proj-progress-label"><span>Progreso</span><span>${p.progress||0}%</span></div>
           <div class="proj-bar"><div class="proj-fill" style="width:${p.progress||0}%;background:var(--accent)"></div></div>
-          <div class="proj-tasks">${pending.slice(0,3).map(t => `<span class="proj-task-chip">${escapeHtml(t.title)}</span>`).join('') || '<span class="proj-task-chip">Sin tareas pendientes</span>'}</div>
+          <div class="proj-tasks">${shown.map(t => `<span class="proj-task-chip">${escapeHtml(t.title)}${enProc && (t.due_date||t.scheduled_date) ? ' · ' + fmtDate(t.due_date||t.scheduled_date) : ''}</span>`).join('') || '<span class="proj-task-chip">Sin tareas pendientes</span>'}${enProc && pending.length > shown.length ? `<span class="proj-task-chip">+${pending.length - shown.length} mas</span>` : ''}</div>
         </div>`;
       }).join('');
     }
@@ -4072,7 +4169,7 @@
     const tbody = document.getElementById('showsTableBody');
     if (!tbody) return;
     if (tabsEl) tabsEl.innerHTML = ['todos', ...BOOKING_STAGES].map(s => `<button class="ctx-tab ${showStageFilter===s?'active':''}" onclick="setShowStageFilter('${s}')">${s==='todos'?'Todos':BOOKING_LABELS[s]}</button>`).join('');
-    let shows = DB.projects.filter(p => p.type === 'show' && !isProjArchived(p));
+    let shows = sortProjects(DB.projects.filter(p => p.type === 'show' && !isProjArchived(p)));
     if (showStageFilter !== 'todos') shows = shows.filter(p => p.booking_stage === showStageFilter);
     if (!shows.length) {
       tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:40px 0"><div class="empty-icon"></div><div class="empty-title">Sin shows en esta etapa</div><button class="btn btn-accent" style="margin-top:14px;font-size:12px" onclick="openModal('Show')">+ Nuevo show</button></div></td></tr>`;
@@ -4415,7 +4512,7 @@
     const overdue = pendingTasks.filter(t => t.due_date && daysUntil(t.due_date) < 0).sort((a,b)=>a.due_date.localeCompare(b.due_date));
     const today = pendingTasks.filter(t => t.due_date === todayISO());
     const upcoming = pendingTasks.filter(t => t.due_date && daysUntil(t.due_date) > 0 && daysUntil(t.due_date) <= 7).sort((a,b)=>a.due_date.localeCompare(b.due_date));
-    const activeProjects = DB.projects.filter(p => !['finalizado','cancelado'].includes(p.status));
+    const activeProjects = sortProjects(DB.projects.filter(p => !['finalizado','cancelado'].includes(p.status)));
 
     const overdueEl = document.getElementById('homeOverdue');
     if (overdueEl) overdueEl.innerHTML = overdue.length ? overdue.slice(0,5).map(t => `<div class="task-item"><div class="task-text" style="color:var(--red)">${escapeHtml(t.title)}<div style="font-size:10px;color:var(--muted)">${fmtDate(t.due_date)}</div></div></div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Nada vencido</div>`;
