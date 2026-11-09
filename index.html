@@ -2109,6 +2109,7 @@
         <div class="section-header" style="margin-bottom:16px">
           <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Proyectos y áreas</div>
           <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" id="btnSortProyectos" onclick="cycleDateSort('proyectos')">Ordenar por fecha</button>
             <button class="btn btn-ghost" id="btnArchProjects" onclick="toggleArchivedProjects()">Ver archivados</button>
             <button class="btn btn-accent" id="npToggleBtn" onclick="npOpen()">+ Nuevo Proyecto</button>
           </div>
@@ -2140,6 +2141,7 @@
         <div class="section-header" style="margin-bottom:16px">
           <div class="section-title"><div class="section-dot" style="background:var(--accent2)"></div>Todas las tareas</div>
           <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" id="btnSortTareas" onclick="cycleDateSort('tareas')">Ordenar por fecha</button>
             <button class="btn btn-ghost" id="btnArchTasks" onclick="toggleArchivedTasks()">Ver finalizadas</button>
             <button class="btn btn-accent" onclick="openModal('Tarea')">+ Nueva tarea</button>
           </div>
@@ -2369,6 +2371,7 @@
               <select class="form-input" style="width:auto;font-size:12px;padding:7px 10px" id="movTipoFilter" onchange="renderMovimientos()">
                 <option value="">Ingresos y egresos</option><option value="ingreso">Solo ingresos</option><option value="egreso">Solo egresos</option><option value="inversion">Solo inversión/ahorro</option>
               </select>
+              <button class="btn btn-ghost" id="btnSortMovs" style="font-size:12px;padding:7px 10px" onclick="cycleDateSort('movs')">Ordenar por fecha</button>
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-ghost" style="font-size:12px" onclick="movExportCSV()">Descargar CSV</button>
@@ -2677,6 +2680,27 @@
   const PROJECT_TYPES_CREATE = { show:'Show', facultad:'Facultad', agencia:'Agencia', produccion:'Producción', personal:'Personal' };
   const PROJECT_STATUS = { idea:'Pendiente', planificacion:'Pendiente', en_desarrollo:'En proceso', esperando_respuesta:'Pendiente', en_ejecucion:'En proceso', finalizado:'Finalizado', cancelado:'Cancelado' };
   function isProjArchived(p) { return ['finalizado','cancelado'].includes(p.status); }
+  // Orden manual por fecha: '' = automatico, 'asc' = mas proxima primero, 'desc' = mas lejana primero
+  const dateSort = { proyectos: '', tareas: '', movs: '' };
+  function sortByDateKey(list, getDate, dir) {
+    const empty = dir === 'asc' ? '9999-12-31' : '0000-01-01';
+    return [...list].sort((a, b) => {
+      const da = getDate(a) || '', db = getDate(b) || '';
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return dir === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
+    });
+  }
+  function dateSortLabel(key) {
+    return key === 'asc' ? 'Fecha: más próxima primero' : key === 'desc' ? 'Fecha: más lejana primero' : 'Ordenar por fecha';
+  }
+  function cycleDateSort(which) {
+    dateSort[which] = dateSort[which] === '' ? 'asc' : dateSort[which] === 'asc' ? 'desc' : '';
+    if (which === 'proyectos') renderProjects();
+    else if (which === 'tareas') renderAllTasks();
+    else renderMovimientos();
+  }
   function isProjEnProceso(p) { return ['en_ejecucion','en_desarrollo'].includes(p.status); }
   // Orden: primero los que estan En proceso, luego por cercania de la fecha (sin fecha al final)
   function sortProjects(list) {
@@ -3735,7 +3759,9 @@
     if (tabsEl) tabsEl.innerHTML = cats.map(([k,l]) => `<button class="ctx-tab ${projFilter===k?'active':''}" onclick="setProjFilter('${k}')">${l}</button>`).join('');
 
     const base = DB.projects.filter(p => showArchivedProjects ? isProjArchived(p) : !isProjArchived(p));
-    const list = sortProjects(projFilter === 'todos' ? base : base.filter(p => p.type === projFilter));
+    const baseList = projFilter === 'todos' ? base : base.filter(p => p.type === projFilter);
+    const list = dateSort.proyectos ? sortByDateKey(baseList, p => p.deadline, dateSort.proyectos) : sortProjects(baseList);
+    const btnSortP = document.getElementById('btnSortProyectos'); if (btnSortP) btnSortP.textContent = dateSortLabel(dateSort.proyectos);
     const btnArch = document.getElementById('btnArchProjects');
     if (btnArch) btnArch.textContent = showArchivedProjects ? 'Ver activos' : 'Ver archivados';
     const badge = document.getElementById('projectsBadge');
@@ -3746,7 +3772,7 @@
     } else {
       gridEl.innerHTML = list.map(p => {
         const pending = tasksOf(p.id).filter(t => !t.done).sort((a,b) => (a.due_date||a.scheduled_date||'9999').localeCompare(b.due_date||b.scheduled_date||'9999'));
-        const enProc = isProjEnProceso(p) && !showArchivedProjects;
+        const enProc = isProjEnProceso(p) && !showArchivedProjects && !dateSort.proyectos;
         const shown = enProc ? pending.slice(0, 8) : pending.slice(0, 3);
         return `
         <div class="project-card ${p.type}" ${enProc ? 'style="border-color:var(--accent);grid-column:1/-1"' : ''} onclick="selectProject('${p.id}')">
@@ -4139,7 +4165,9 @@
   function renderAllTasks() {
     const wrap = document.getElementById('allTasksList');
     if (!wrap) return;
-    const pending = sortTasksPriority(DB.tasks.filter(t => !t.done));
+    const pendList = DB.tasks.filter(t => !t.done);
+    const pending = dateSort.tareas ? sortByDateKey(pendList, t => t.scheduled_date || t.due_date, dateSort.tareas) : sortTasksPriority(pendList);
+    const btnSortT = document.getElementById('btnSortTareas'); if (btnSortT) btnSortT.textContent = dateSortLabel(dateSort.tareas);
     const done = DB.tasks.filter(t => t.done).sort((a,b) => (b.due_date||b.scheduled_date||'').localeCompare(a.due_date||a.scheduled_date||''));
     const sorted = showArchivedTasks ? done : pending;
     const btnArch = document.getElementById('btnArchTasks');
@@ -4762,7 +4790,8 @@
       .filter(m => !catFiltro || m.cat === catFiltro)
       .filter(m => !tipoFiltro || m.tipo === tipoFiltro)
       .slice()
-      .sort((a, b) => movSortKey(b.fecha).localeCompare(movSortKey(a.fecha)));
+      .sort((a, b) => dateSort.movs === 'asc' ? movSortKey(a.fecha).localeCompare(movSortKey(b.fecha)) : movSortKey(b.fecha).localeCompare(movSortKey(a.fecha)));
+    const btnSortM = document.getElementById('btnSortMovs'); if (btnSortM) btnSortM.textContent = dateSort.movs === 'asc' ? 'Fecha: más antigua primero' : dateSort.movs === 'desc' ? 'Fecha: más nueva primero' : 'Ordenar por fecha';
 
     tbody.innerHTML = '';
     if (!filtrados.length) {
