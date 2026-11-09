@@ -2248,9 +2248,15 @@
         <!-- FIN TABS -->
         <div class="context-tabs" style="margin-bottom:20px">
           <button class="ctx-tab active" onclick="setFinTab('movimientos', this)">Movimientos</button>
+          <button class="ctx-tab" onclick="setFinTab('pendientes', this)">Pendientes</button>
           <button class="ctx-tab" onclick="setFinTab('inversiones', this)">Inversiones</button>
           <button class="ctx-tab" onclick="setFinTab('flujo', this)">Resumen</button>
           <button class="ctx-tab" onclick="setFinTab('proyeccion', this)">Previsión</button>
+        </div>
+
+        <!-- === PENDIENTES: por cobrar / por pagar === -->
+        <div id="fin-pendientes" style="display:none">
+          <div id="pendientesWrap"></div>
         </div>
 
         <!-- === FLUJO DE CAJA / RESUMEN === -->
@@ -2589,7 +2595,7 @@
   let DB = {
     projects: [], tasks: [], contacts: [], organizations: [], artists: [],
     personalEvents: [], documents: [], notes: [], inbox: [], faculty: [], goals: [], movimientos: [],
-    areas: [], phases: [], taskDependencies: [], inversiones: [], ayudaMemoria: [], planner: [],
+    areas: [], phases: [], taskDependencies: [], inversiones: [], ayudaMemoria: [], planner: [], pendientes: [],
     configPrevision: [], gastosFijos: [], fuentesIngreso: [], pagosProgramados: [], ingresosPrevistos: [], asignacionesExcedente: []
   };
 
@@ -2600,7 +2606,7 @@
         eventsRes, docsRes, notesRes, inboxRes, facultyRes, goalsRes, movRes,
         areasRes, phasesRes, depsRes, invRes,
         configPrevRes, gastosFijosRes, fuentesRes, pagosProgRes, ingresosPrevRes, asignExcRes,
-        memoRes, plannerRes
+        memoRes, plannerRes, pendRes
       ] = await Promise.all([
         supabaseClient.from('projects').select('*'),
         supabaseClient.from('tasks').select('*'),
@@ -2626,6 +2632,7 @@
         supabaseClient.from('asignaciones_excedente').select('*'),
         supabaseClient.from('ayuda_memoria').select('*').order('created_at', { ascending: false }),
         supabaseClient.from('planificador_semanal').select('*'),
+        supabaseClient.from('pendientes_caja').select('*').order('created_at', { ascending: true }),
       ]);
       DB.projects = projectsRes.data || [];
       DB.tasks = tasksRes.data || [];
@@ -2651,6 +2658,7 @@
       DB.asignacionesExcedente = asignExcRes.data || [];
       DB.ayudaMemoria = memoRes.data || [];
       DB.planner = plannerRes.data || [];
+      DB.pendientes = pendRes.data || [];
       console.log('Datos cargados desde Supabase:', DB);
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -4615,7 +4623,7 @@
   function renderAll() {
     renderHome(); renderInbox(); renderProjects(); renderAllTasks(); renderShows(); renderFaculty();
     renderContacts(); renderOrgs(); renderArtists(); renderDocs(); renderNotes(); renderGoals(); renderCalendar();
-    renderMovimientos();
+    renderMovimientos(); renderPendientes();
   }
 
   /* =========================================================
@@ -4624,8 +4632,173 @@
      de Inversiones y Proyección no tienen fuente de datos real
      todavía (ver empty-state en el HTML).
      ========================================================= */
+
+  /* =========================================================
+     PENDIENTES — lista simple de lo que te deben (por cobrar) y
+     lo que tenes que pagar (por pagar). Al marcarlos como hechos
+     se registra el ingreso / egreso en Movimientos (CAJA).
+     ========================================================= */
+  let pendEditId = null;
+  const pendMoney = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+  function pendMesActual() { return todayISO().slice(0, 7); }
+
+  function pendFormAlta(tipo) {
+    const ph = tipo === 'cobrar' ? 'Quién / concepto' : 'Concepto del pago';
+    return `<div class="pend-add">
+      <input class="form-input" id="pn_c_${tipo}" placeholder="${ph}" onkeydown="if(event.key==='Enter')pendAgregar('${tipo}')">
+      <input class="form-input" id="pn_m_${tipo}" type="number" min="0" step="any" placeholder="Monto" style="max-width:110px" onkeydown="if(event.key==='Enter')pendAgregar('${tipo}')">
+      <input class="form-input" id="pn_f_${tipo}" type="date" title="Fecha estimada (opcional)" style="max-width:140px">
+      <button class="btn btn-accent" style="padding:7px 12px" onclick="pendAgregar('${tipo}')">Agregar</button>
+    </div>`;
+  }
+
+  function pendFilaPendiente(p) {
+    const hoy = todayISO();
+    const atras = p.fecha_estimada && p.fecha_estimada < hoy;
+    if (pendEditId === p.id) {
+      return `<tr><td><input class="form-input" id="pe_c_${p.id}" value="${escapeHtml(p.concepto)}" style="font-size:12px;padding:6px 8px"></td>
+        <td><input class="form-input" id="pe_m_${p.id}" type="number" step="any" value="${Number(p.monto)}" style="font-size:12px;padding:6px 8px;max-width:100px"></td>
+        <td><input class="form-input" id="pe_f_${p.id}" type="date" value="${p.fecha_estimada || ''}" style="font-size:12px;padding:6px 8px"></td>
+        <td style="white-space:nowrap;text-align:right"><button class="btn btn-accent" style="padding:4px 9px;font-size:11px" onclick="pendGuardarEdicion('${p.id}')">Guardar</button>
+        <button class="btn btn-ghost" style="padding:4px 9px;font-size:11px" onclick="pendEditId=null;renderPendientes()">Cancelar</button></td></tr>`;
+    }
+    return `<tr>
+      <td>${escapeHtml(p.concepto)}</td>
+      <td style="text-align:right;font-family:var(--mono)">${pendMoney(p.monto)}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:${atras ? 'var(--red)' : 'var(--muted)'}">${p.fecha_estimada ? fmtDate(p.fecha_estimada) + (atras ? ' · atrasado' : '') : ''}</td>
+      <td style="white-space:nowrap;text-align:right">
+        <button class="btn btn-accent" style="padding:4px 9px;font-size:11px" onclick="pendMarcarHecho('${p.id}')">${p.tipo === 'cobrar' ? 'Cobrado' : 'Pagado'}</button>
+        <button class="btn btn-ghost" style="padding:4px 9px;font-size:11px" onclick="pendEditId='${p.id}';renderPendientes()">Editar</button>
+        <button class="btn btn-ghost" style="padding:4px 9px;font-size:11px;color:var(--red)" onclick="pendEliminar('${p.id}')">Eliminar</button>
+      </td></tr>`;
+  }
+
+  function pendFilaHecha(p) {
+    return `<tr>
+      <td>${escapeHtml(p.concepto)}</td>
+      <td style="text-align:right;font-family:var(--mono)">${pendMoney(p.monto)}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${fmtDate(p.fecha_real)}</td>
+      <td style="text-align:right"><button class="btn btn-ghost" style="padding:4px 9px;font-size:11px" onclick="pendDeshacer('${p.id}')">Deshacer</button></td></tr>`;
+  }
+
+  function pendBloque(titulo, tipo, lista, hecha, color) {
+    const total = lista.reduce((s, p) => s + (Number(p.monto) || 0), 0);
+    const filas = lista.map(hecha ? pendFilaHecha : pendFilaPendiente).join('') ||
+      `<tr><td colspan="4" style="color:var(--muted);font-size:12px;padding:14px 8px">${hecha ? 'Nada registrado este mes' : 'Nada pendiente'}</td></tr>`;
+    return `<div class="card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <div style="font-weight:700">${titulo}</div>
+        <div style="font-family:var(--mono);font-weight:700;color:${color}">${pendMoney(total)}</div>
+      </div>
+      ${hecha ? '' : pendFormAlta(tipo)}
+      <table class="mov-table" style="width:100%;margin-top:8px"><thead><tr><th style="text-align:left">${hecha ? 'Concepto' : 'Concepto'}</th><th style="text-align:right">Monto</th><th style="text-align:left">${hecha ? 'Fecha' : 'Fecha estimada'}</th><th></th></tr></thead><tbody>${filas}</tbody></table>
+    </div>`;
+  }
+
+  function renderPendientes() {
+    const wrap = document.getElementById('pendientesWrap');
+    if (!wrap) return;
+    const mes = pendMesActual();
+    const porFecha = (a, b) => (a.fecha_estimada || '9999').localeCompare(b.fecha_estimada || '9999');
+    const cobrar = DB.pendientes.filter(p => p.tipo === 'cobrar' && p.estado === 'pendiente').sort(porFecha);
+    const pagar = DB.pendientes.filter(p => p.tipo === 'pagar' && p.estado === 'pendiente').sort(porFecha);
+    const cobrados = DB.pendientes.filter(p => p.tipo === 'cobrar' && p.estado === 'hecho' && (p.fecha_real || '').slice(0, 7) === mes).sort((a, b) => (b.fecha_real || '').localeCompare(a.fecha_real || ''));
+    const pagados = DB.pendientes.filter(p => p.tipo === 'pagar' && p.estado === 'hecho' && (p.fecha_real || '').slice(0, 7) === mes).sort((a, b) => (b.fecha_real || '').localeCompare(a.fecha_real || ''));
+    const tc = cobrar.reduce((s, p) => s + Number(p.monto || 0), 0), tp = pagar.reduce((s, p) => s + Number(p.monto || 0), 0);
+    wrap.innerHTML = `
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--muted)">
+        <span>Por cobrar <b style="color:var(--green);font-family:var(--mono)">${pendMoney(tc)}</b></span>
+        <span>Por pagar <b style="color:var(--red);font-family:var(--mono)">${pendMoney(tp)}</b></span>
+        <span>Diferencia <b style="font-family:var(--mono);color:${tc - tp >= 0 ? 'var(--green)' : 'var(--red)'}">${tc - tp >= 0 ? '+' : '-'}${pendMoney(Math.abs(tc - tp))}</b></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px">
+        ${pendBloque('Por cobrar', 'cobrar', cobrar, false, 'var(--green)')}
+        ${pendBloque('Por pagar', 'pagar', pagar, false, 'var(--red)')}
+        ${pendBloque('Ingresos cobrados (este mes)', 'cobrar', cobrados, true, 'var(--green)')}
+        ${pendBloque('Pagos realizados (este mes)', 'pagar', pagados, true, 'var(--red)')}
+      </div>`;
+  }
+
+  async function pendAgregar(tipo) {
+    const concepto = (document.getElementById('pn_c_' + tipo).value || '').trim();
+    const monto = Number(document.getElementById('pn_m_' + tipo).value);
+    const fecha = document.getElementById('pn_f_' + tipo).value || null;
+    if (!concepto) { alert('Poné un concepto.'); return; }
+    if (!(monto > 0)) { alert('Poné un monto mayor a cero.'); return; }
+    try {
+      const { data, error } = await supabaseClient.from('pendientes_caja').insert([{ tipo, concepto, monto, fecha_estimada: fecha, estado: 'pendiente' }]).select();
+      if (error) throw error;
+      DB.pendientes.push(data[0]);
+      renderPendientes();
+      const c = document.getElementById('pn_c_' + tipo); if (c) c.focus();
+    } catch (e) { alert('Error agregando: ' + e.message); }
+  }
+
+  async function pendGuardarEdicion(id) {
+    const p = DB.pendientes.find(x => x.id === id); if (!p) return;
+    const concepto = (document.getElementById('pe_c_' + id).value || '').trim();
+    const monto = Number(document.getElementById('pe_m_' + id).value);
+    const fecha = document.getElementById('pe_f_' + id).value || null;
+    if (!concepto || !(monto > 0)) { alert('Revisá el concepto y el monto.'); return; }
+    try {
+      const { error } = await supabaseClient.from('pendientes_caja').update({ concepto, monto, fecha_estimada: fecha }).eq('id', id);
+      if (error) throw error;
+      Object.assign(p, { concepto, monto, fecha_estimada: fecha });
+      pendEditId = null; renderPendientes();
+    } catch (e) { alert('Error guardando: ' + e.message); }
+  }
+
+  async function pendEliminar(id) {
+    const p = DB.pendientes.find(x => x.id === id); if (!p) return;
+    if (!confirm('¿Eliminar "' + p.concepto + '"?')) return;
+    try {
+      const { error } = await supabaseClient.from('pendientes_caja').delete().eq('id', id);
+      if (error) throw error;
+      DB.pendientes = DB.pendientes.filter(x => x.id !== id);
+      renderPendientes();
+    } catch (e) { alert('Error eliminando: ' + e.message); }
+  }
+
+  // Marca como cobrado / pagado y crea el movimiento en CAJA (fecha de hoy)
+  async function pendMarcarHecho(id) {
+    const p = DB.pendientes.find(x => x.id === id); if (!p || p.estado === 'hecho') return;
+    const hoy = todayISO();
+    const esIng = p.tipo === 'cobrar';
+    const signed = esIng ? Math.abs(Number(p.monto)) : -Math.abs(Number(p.monto));
+    try {
+      const { data, error } = await supabaseClient.from('movimientos').insert([{
+        fecha: hoy, description: p.concepto, cat: esIng ? 'Otros ingresos' : 'Otros', tipo: esIng ? 'ingreso' : 'egreso',
+        monto: signed, saldo: saldoCajaActual() + signed, project_id: null
+      }]).select();
+      if (error) throw error;
+      DB.movimientos.unshift(data[0]);
+      const { error: e2 } = await supabaseClient.from('pendientes_caja').update({ estado: 'hecho', fecha_real: hoy, movimiento_id: data[0].id }).eq('id', id);
+      if (e2) throw e2;
+      Object.assign(p, { estado: 'hecho', fecha_real: hoy, movimiento_id: data[0].id });
+      renderPendientes(); renderMovimientos(); renderHome();
+    } catch (e) { alert('Error registrando: ' + e.message); }
+  }
+
+  // Vuelve a pendiente y borra el movimiento que se habia creado
+  async function pendDeshacer(id) {
+    const p = DB.pendientes.find(x => x.id === id); if (!p || p.estado !== 'hecho') return;
+    if (!confirm('¿Volver "' + p.concepto + '" a pendiente? Se elimina el movimiento que se registró en Movimientos.')) return;
+    try {
+      if (p.movimiento_id) {
+        const { error } = await supabaseClient.from('movimientos').delete().eq('id', p.movimiento_id);
+        if (error) throw error;
+        DB.movimientos = DB.movimientos.filter(m => m.id !== p.movimiento_id);
+        await recalcSaldos();
+      }
+      const { error: e2 } = await supabaseClient.from('pendientes_caja').update({ estado: 'pendiente', fecha_real: null, movimiento_id: null }).eq('id', id);
+      if (e2) throw e2;
+      Object.assign(p, { estado: 'pendiente', fecha_real: null, movimiento_id: null });
+      renderPendientes(); renderMovimientos(); renderHome();
+    } catch (e) { alert('Error deshaciendo: ' + e.message); }
+  }
+
   function setFinTab(tab, btn) {
-    ['flujo','inversiones','movimientos','proyeccion'].forEach(t => {
+    ['flujo','inversiones','movimientos','proyeccion','pendientes'].forEach(t => {
       const el = document.getElementById('fin-' + t);
       if (el) el.style.display = 'none';
     });
@@ -4635,6 +4808,7 @@
     if (btn) btn.classList.add('active');
     if (tab === 'flujo') renderFlujoChart();
     if (tab === 'movimientos') renderMovimientos();
+    if (tab === 'pendientes') renderPendientes();
     if (tab === 'inversiones') renderInversiones();
     if (tab === 'proyeccion') setPrevisionTab('tablero');
   }
