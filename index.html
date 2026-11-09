@@ -2664,7 +2664,13 @@
   // ---- Helpers de fecha ----
   function todayISO() { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); }
   function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
-  function fmtDate(iso) { if (!iso) return '—'; const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString('es-AR', { day:'2-digit', month:'short' }); }
+  // Formato de fechas del CRM: DIA/MES/AÑO
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : String(iso);
+  }
+  function fmtDateObj(d) { return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear(); }
   function daysUntil(iso) { const d = new Date(iso + 'T00:00:00'); const t = new Date(todayISO() + 'T00:00:00'); return Math.round((d - t) / 86400000); }
 
   const PROJECT_TYPES = { show:'Show', produccion:'Producción', diseno:'Diseño', acustica:'Acústica', facultad:'Facultad', agencia:'Agencia', comercial:'Comercial', personal:'Personal', otro:'Otro' };
@@ -3413,7 +3419,7 @@
     if (!datos.length) { alert('No hay movimientos para exportar en este filtro.'); return; }
     const header = ['Fecha','Descripcion','Categoria','Tipo','Monto','Saldo'];
     const rows = datos.map(m => [
-      m.fecha || '', m.description || '', m.cat || '',
+      fmtDate(m.fecha) || '', m.description || '', m.cat || '',
       m.tipo === 'ingreso' ? 'Ingreso' : (m.tipo === 'inversion' ? 'Inversión/Ahorro' : 'Egreso'), m.monto, m.saldo
     ]);
     const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
@@ -3694,7 +3700,7 @@
     const areaId = (DB.areas.find(a => a.name === areaName) || {}).id || null;
     try {
       const { data, error } = await supabaseClient.from('projects').insert([{
-        name: title, type, status: 'planificacion', deadline: date,
+        name: title, type, status: 'planificacion', priority: 'media', deadline: date,
         area_id: areaId, description: '', progress: 0,
         booking_stage: type === 'show' ? 'lead' : ''
       }]).select();
@@ -4459,7 +4465,7 @@
     renderWeekHourly(weekDays, events, dayLabels);
     if (label) {
       const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
-      label.textContent = `${monday.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})} — ${sunday.toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}`;
+      label.textContent = `${fmtDateObj(monday)} — ${fmtDateObj(sunday)}`;
     }
 
     if (monthGrid) {
@@ -4783,7 +4789,7 @@
           `;
         } else {
           row.innerHTML = `
-            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(m.fecha)}</td>
+            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(fmtDate(m.fecha))}</td>
             <td style="font-size:13px">${escapeHtml(m.description)}</td>
             <td><span class="mov-badge" style="background:${getCatColor(m.cat)}22;color:${getCatColor(m.cat)}">${escapeHtml(m.cat)}</span></td>
             <td><span class="mov-badge" style="background:${tInfo.bg};color:${tInfo.color}">${tInfo.label}</span></td>
@@ -5061,7 +5067,7 @@
         const val_ = invValuacion(p);
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(p.fecha)}</td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(fmtDate(p.fecha))}</td>
           <td style="font-size:13px;font-weight:600">${escapeHtml(p.activo)}${p.ticker ? `<div style="font-size:10px;color:var(--muted);font-weight:400">${escapeHtml(p.ticker)}</div>` : ''}</td>
           <td><span class="mov-badge" style="background:${getCatColor(p.clase_activo)}22;color:${getCatColor(p.clase_activo)}">${escapeHtml(p.clase_activo)}</span></td>
           <td style="text-align:right;font-family:var(--mono)">${Number(p.cantidad).toLocaleString('es-AR', {maximumFractionDigits:8})}</td>
@@ -5467,7 +5473,7 @@
           <thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th style="text-align:right">Monto</th><th style="text-align:right">Acciones</th></tr></thead>
           <tbody>
             ${DB.pagosProgramados.length ? DB.pagosProgramados.map(p => `<tr>
-              <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(p.fecha)}</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(fmtDate(p.fecha))}</td>
               <td style="font-size:13px">${escapeHtml(p.concepto)}${p.tipo==='cuota' ? `<div style="font-size:10px;color:var(--muted)">Cuota ${p.cuota_numero}/${p.cuota_total}</div>` : ''}${p.movimiento_caja_id ? '<div style="font-size:10px;color:var(--green)">Vinculado a CAJA</div>' : ''}</td>
               <td><span class="mov-badge">${p.tipo==='cuota'?'Cuota':'Puntual'}</span></td>
               <td style="text-align:right;font-family:var(--mono)">$${Number(p.monto).toLocaleString('es-AR')}</td>
@@ -5623,7 +5629,7 @@
               const fuente = DB.fuentesIngreso.find(f => f.id === i.fuente_id);
               const atrasado = i.estado === 'confirmado' && i.fecha_estimada < hoy && !i.movimiento_caja_id;
               return `<tr>
-                <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(i.fecha_estimada)}</td>
+                <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escapeHtml(fmtDate(i.fecha_estimada))}</td>
                 <td style="font-size:13px">${escapeHtml(i.descripcion||'')}${atrasado ? '<div style="font-size:10px;color:var(--red)">Cobro atrasado</div>' : ''}</td>
                 <td style="font-size:12px;color:var(--muted)">${fuente ? escapeHtml(fuente.nombre) : '—'}</td>
                 <td style="text-align:right;font-family:var(--mono)">$${Number(i.monto).toLocaleString('es-AR')}</td>
@@ -5782,8 +5788,7 @@
 
   function planEtiquetaSemana(dom) {
     const sab = addDays(dom, 6);
-    const [, m1, d1] = dom.split('-'), [y2, m2, d2] = sab.split('-');
-    return `Semana del ${parseInt(d1)} de ${MES_NOMBRE[m1].toLowerCase()} al ${parseInt(d2)} de ${MES_NOMBRE[m2].toLowerCase()} de ${y2}`;
+    return `Semana del ${fmtDate(dom)} al ${fmtDate(sab)}`;
   }
 
   function planCambiarSemana(dir) {
@@ -5836,7 +5841,7 @@
     const label = document.getElementById('planWeekLabel');
     if (label) label.textContent = planEtiquetaSemana(dom);
     wrap.innerHTML = `<div class="pl-wrap"><table class="pl-table">
-      <thead><tr>${dias.map((f, i) => `<th class="${f === hoy ? 'pl-today' : ''}">${DIAS_SEMANA[i]} ${parseInt(f.slice(8, 10))}</th>`).join('')}</tr></thead>
+      <thead><tr>${dias.map((f, i) => `<th class="${f === hoy ? 'pl-today' : ''}">${DIAS_SEMANA[i]} ${f.slice(8, 10)}/${f.slice(5, 7)}</th>`).join('')}</tr></thead>
       <tbody><tr>${dias.map(f => `<td class="${f === hoy ? 'pl-today' : ''}">${planCeldaHtml(f)}</td>`).join('')}</tr></tbody>
     </table></div>`;
     if (planAdding || planEditingId) { const t = document.getElementById('pl_texto'); if (t) t.focus(); }
@@ -6198,7 +6203,7 @@
 
   const _now = new Date();
   const _opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const _dateStr = _now.toLocaleDateString('es-AR', _opts);
+  const _dateStr = _now.toLocaleDateString('es-AR', { weekday: 'long' }) + ' ' + fmtDateObj(_now);
   document.getElementById('pageDate').textContent = _dateStr;
   const _calLabel = document.getElementById('calTodayLabel');
   if (_calLabel) _calLabel.textContent = _dateStr;
